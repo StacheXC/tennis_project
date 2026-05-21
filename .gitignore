@@ -1,0 +1,14 @@
+# RStudio
+.Rproj.user/
+
+# R session files
+.Rhistory
+.RData
+.Ruserdata
+
+# macOS (if applicable)
+.DS_Store
+
+# Large model files
+reward_surface/player_gamm.rds
+reward_surface/old/player_gamm.rds
