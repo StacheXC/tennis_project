@@ -10,7 +10,7 @@ players <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
 
 pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>%  
   filter(
-    # server_name %in% players,
+    server_name %in% players,
     str_detect(match_id, "australian"),
     x_serve_bounce > 3,
     x_serve_bounce <= 6.4,
@@ -42,12 +42,38 @@ player_gamm = gamm4(point ~ s(x_serve_bounce,
                               serve_speed_kph,
                               by = hand_position) + 
                       hand_position,
-                    random = ~ (1 | server_name) + (1 | returner),
+                    random = ~ (1 | server_name) + (1 | returner_name),
                     family = binomial,
                     data = pbp_df
 )
 
 # saveRDS(player_gamm, "tennis_project/reward_surface/player_gamm_all.rds")
+
+# Strip training data from gam object to reduce file size
+player_gamm_slim <- player_gamm
+player_gamm_slim$gam$data              <- NULL
+player_gamm_slim$gam$model             <- NULL
+player_gamm_slim$gam$residuals         <- NULL
+player_gamm_slim$gam$fitted.values     <- NULL
+player_gamm_slim$gam$linear.predictors <- NULL
+player_gamm_slim$gam$weights           <- NULL
+player_gamm_slim$gam$prior.weights     <- NULL
+player_gamm_slim$gam$y                 <- NULL
+player_gamm_slim$gam$offset            <- NULL
+
+# Extract random effects as small tibbles (replaces need to save $mer)
+re_server <- ranef(player_gamm$mer)$server_name |>
+  tibble::rownames_to_column("server_name") |>
+  rename(re = `(Intercept)`)
+
+re_returner <- ranef(player_gamm$mer)$returner |>
+  tibble::rownames_to_column("returner") |>
+  rename(re = `(Intercept)`)
+
+saveRDS(
+  list(gam = player_gamm_slim$gam, re_server = re_server, re_returner = re_returner),
+  "tennis_project/reward_surface/player_gamm_slim.rds"
+)
 
 
 
