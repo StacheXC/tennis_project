@@ -2,9 +2,7 @@
 library(tidyverse)
 library(mvtnorm)
 
-# move these
-source("tennis_project/interpolate_sig_fig.R")
-# source("modules/utils.R")
+source("tennis_project/optimums/interpolate_sig_fig.R")
 
 geom_halfcourt <- function()  {
   court_dat <- data.frame(
@@ -119,91 +117,38 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 }
 
 
-get_optimums = function(player) {
-  
-  # value_du = readRDS("important/reward_surface/value_du_1.rds")
-  # value_ad = readRDS("important/reward_surface/value_ad_1.rds")
+
+get_optimums = function(server_name) {
+
   value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
-  
+
   # Get posterior distribution data
-  exec_err_fit <- readRDS(paste0("tennis_project/execution_error/players/", player, ".rds"))
-  
-  # Extract mu
-  mu_df <- exec_err_fit$summary(variables = c("mu")) %>% 
-    dplyr::select(variable, mean) %>% 
-    extract(variable, into = c("serve_num", "court_side", "serve_dir", "coord"),
-            regex = "mu\\[(\\d+),(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE) %>%
-    mutate(coord = ifelse(coord == 1, "x", "y")) %>% 
-    pivot_wider(
-      names_from = coord,
-      values_from = mean,
-      names_prefix = "mu_"
-    )
-  
-  # Extract tau
-  tau_df <- exec_err_fit$summary(variables = c("tau")) %>% 
-    dplyr::select(variable, mean) %>% 
-    extract(variable, into = c("serve_num", "court_side", "serve_dir", "coord"),
-            regex = "tau\\[(\\d+),(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE) %>%
-    mutate(coord = ifelse(coord == 1, "x", "y")) %>% 
-    pivot_wider(
-      names_from = coord,
-      values_from = mean,
-      names_prefix = "tau_"
-    )
-  
-  # Extract rho
-  rho_df <- exec_err_fit$summary(variables = c("rho")) %>% 
-    dplyr::select(variable, mean) %>% 
-    extract(variable, into = c("serve_num", "court_side", "serve_dir"),
-            regex = "rho\\[(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE) %>% 
-    rename("rho" = "mean")
-  
-  # Extract t
-  t_df <- exec_err_fit$summary(variables = c("t")) %>% 
-    dplyr::select(variable, mean) %>% 
-    extract(variable, into = c("serve_num", "court_side", "serve_dir"),
-            regex = "t\\[(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE) %>% 
-    rename("t" = "mean")
-  
-  exec_err_post_mean <- full_join(mu_df, tau_df) %>% 
-    full_join(rho_df) |> 
-    full_join(t_df) |> 
-    mutate(court_side = ifelse(court_side == 1, "AdCourt", "DeuceCourt"),
-           serve_dir = ifelse(serve_dir == 1, "T", "Wide"))
-  
+  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
+    group_by(serve_num, court_side, serve_dir) %>%
+    summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
+
   results <- list()
-  
+
   for (court_side in c("DeuceCourt", "AdCourt")) {
-    # value_obj <- if (court_side == "DeuceCourt") value_du else value_ad
-    
     for (serve_num in c(2, 1)) {
-      
-      value_obj = value_all |> 
-        filter(court_side == !!court_side, 
+
+      value_obj = value_all |>
+        filter(court_side == !!court_side,
                serve_num == !!serve_num,
-               name == player) |> 
-        rename(x = x_serve_bounce, y = y_serve_bounce) |> 
+               server_name == !!server_name) |>
+        rename(x = x_serve_bounce, y = y_serve_bounce) |>
         select(x, y, v_hat)
       
-      # value_obj <- value_func |> 
-      #   filter(court_side == !!court_side, serve_num == !!serve_num)
-      
       if (serve_num == 1) {
-        fault_value = mu_df |>
-          mutate(court_side = ifelse(court_side == 1, "AdCourt", "DeuceCourt"),
-                 x = round(mu_x, 1),
+        fault_value = exec_err_post_mean |>
+          mutate(x = round(mu_x, 1),
                  y = round(mu_y, 1)) |>
-          filter(serve_num == !!serve_num,
+          filter(serve_num == 2,
                  court_side == !!court_side) |>
           left_join(ev_df, by = c("x", "y")) |>
           slice_max(ev_hat) |>
           pull(ev_hat)
-        
+
       } else {
         fault_value = -1
       }
@@ -228,11 +173,13 @@ get_optimums = function(player) {
   }
   
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, paste0("tennis_project/optimums/players/", player, ".rds"))
+  saveRDS(combined_df, paste0("tennis_project/optimums/players/", server_name, ".rds"))
   
 }
 
-get_optimums("N.DJOKOVIC")
+server_name = "N.DJOKOVIC"
+
+get_optimums(server_name)
 
 
 
@@ -251,9 +198,9 @@ for (player in players) {
 
 
 
-optimum_grapher = function(player) {
+optimum_grapher = function(server_name) {
   
-  ev_df <- readRDS(paste0("tennis_project/optimums/players/", player, ".rds"))
+  ev_df <- readRDS(paste0("tennis_project/optimums/players/", server_name, ".rds"))
   
   ev_df <- ev_df |> 
     mutate(serve_dir = ifelse(abs(y) > 2, "Wide", "T"),
@@ -280,7 +227,7 @@ optimum_grapher = function(player) {
                shape = 4, size = 1, stroke = 1) +
     facet_grid(court_side ~ serve_num, switch = "y") +
     coord_equal() +
-    labs(x = "", y = "", title = player) +
+    labs(x = "", y = "", title = server_name) +
     theme_minimal() +
     theme(panel.grid = element_blank(),
           axis.text = element_blank(),
@@ -293,5 +240,5 @@ optimum_grapher = function(player) {
   
 }
 
-optimum_grapher("R.NADAL")
+optimum_grapher(server_name)
 

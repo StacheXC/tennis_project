@@ -3,7 +3,7 @@ library(tidyverse)
 library(cmdstanr)
 library(posterior)
 
-# server_name = "N.DJOKOVIC"
+server_name = "N.DJOKOVIC"
 
 fit_execution_error = function(server_name) {
   
@@ -89,11 +89,56 @@ fit_execution_error = function(server_name) {
     iter_sampling = 1000
   )
   
-  saveRDS(fit$draws(format = "draws_df"), paste0("tennis_project/execution_error/players/", server_name, ".rds"))
+  draws_raw <- fit$draws(format = "draws_df") %>% as_tibble()
+
+  mu_df <- draws_raw %>%
+    select(.draw, matches("^mu\\[")) %>%
+    pivot_longer(cols = -".draw", names_to = "variable", values_to = "value") %>%
+    extract(variable, into = c("serve_num", "court_side", "serve_dir", "coord"),
+            regex = "mu\\[(\\d+),(\\d+),(\\d+),(\\d+)\\]", convert = TRUE) %>%
+    mutate(coord = ifelse(coord == 1, "mu_x", "mu_y")) %>%
+    pivot_wider(names_from = coord, values_from = value)
+
+  tau_df <- draws_raw %>%
+    select(.draw, matches("^tau\\[")) %>%
+    pivot_longer(cols = -".draw", names_to = "variable", values_to = "value") %>%
+    extract(variable, into = c("serve_num", "court_side", "serve_dir", "coord"),
+            regex = "tau\\[(\\d+),(\\d+),(\\d+),(\\d+)\\]", convert = TRUE) %>%
+    mutate(coord = ifelse(coord == 1, "tau_x", "tau_y")) %>%
+    pivot_wider(names_from = coord, values_from = value)
+
+  rho_df <- draws_raw %>%
+    select(.draw, matches("^rho\\[")) %>%
+    pivot_longer(cols = -".draw", names_to = "variable", values_to = "rho") %>%
+    extract(variable, into = c("serve_num", "court_side", "serve_dir"),
+            regex = "rho\\[(\\d+),(\\d+),(\\d+)\\]", convert = TRUE)
+
+  t_df <- draws_raw %>%
+    select(.draw, matches("^t\\[")) %>%
+    pivot_longer(cols = -".draw", names_to = "variable", values_to = "t") %>%
+    extract(variable, into = c("serve_num", "court_side", "serve_dir"),
+            regex = "t\\[(\\d+),(\\d+),(\\d+)\\]", convert = TRUE)
+
+  draws_processed <- mu_df %>%
+    full_join(tau_df, by = c(".draw", "serve_num", "court_side", "serve_dir")) %>%
+    full_join(rho_df, by = c(".draw", "serve_num", "court_side", "serve_dir")) %>%
+    full_join(t_df,   by = c(".draw", "serve_num", "court_side", "serve_dir")) %>%
+    mutate(
+      serve_dir = case_when(
+        court_side == 1 & serve_dir == 1 ~ "T",
+        court_side == 1 & serve_dir == 2 ~ "Wide",
+        court_side == 2 & serve_dir == 1 ~ "Wide",
+        court_side == 2 & serve_dir == 2 ~ "T"
+      ),
+      court_side = ifelse(court_side == 1, "DeuceCourt", "AdCourt")
+    ) %>%
+    rename(draw = .draw)
+
+  saveRDS(draws_processed, paste0("tennis_project/execution_error/players/", server_name, ".rds"))
   
 }
 
-# fit_execution_error(server_name)
+fit_execution_error(server_name)
 
 players <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA",

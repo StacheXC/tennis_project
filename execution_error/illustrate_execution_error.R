@@ -45,53 +45,9 @@ illustrate_execution_error = function(server_name) {
       court_side = factor(court_side, levels = c("Deuce", "Ad"))
     )
 
-  draws_df <- readRDS(paste0("tennis_project/execution_error/", server_name, ".rds")) %>%
-    as_tibble()
-
-  # Extract mu
-  mu_df <- draws_df %>%
-    select(matches("^mu\\[")) %>%
-    summarise(across(everything(), mean)) %>%
-    pivot_longer(everything(), names_to = "variable", values_to = "mean") %>%
-    extract(variable, into = c("serve_num", "court_side", "serve_dir", "coord"),
-            regex = "mu\\[(\\d+),(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE) %>%
-    mutate(coord = ifelse(coord == 1, "x", "y")) %>%
-    pivot_wider(names_from = coord, values_from = mean, names_prefix = "mu_")
-
-  # Extract tau
-  tau_df <- draws_df %>%
-    select(matches("^tau\\[")) %>%
-    summarise(across(everything(), mean)) %>%
-    pivot_longer(everything(), names_to = "variable", values_to = "mean") %>%
-    extract(variable, into = c("serve_num", "court_side", "serve_dir", "coord"),
-            regex = "tau\\[(\\d+),(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE) %>%
-    mutate(coord = ifelse(coord == 1, "x", "y")) %>%
-    pivot_wider(names_from = coord, values_from = mean, names_prefix = "tau_")
-
-  # Extract rho
-  rho_df <- draws_df %>%
-    select(matches("^rho\\[")) %>%
-    summarise(across(everything(), mean)) %>%
-    pivot_longer(everything(), names_to = "variable", values_to = "rho") %>%
-    extract(variable, into = c("serve_num", "court_side", "serve_dir"),
-            regex = "rho\\[(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE)
-
-  # Extract t
-  t_df <- draws_df %>%
-    select(matches("^t\\[")) %>%
-    summarise(across(everything(), mean)) %>%
-    pivot_longer(everything(), names_to = "variable", values_to = "t") %>%
-    extract(variable, into = c("serve_num", "court_side", "serve_dir"),
-            regex = "t\\[(\\d+),(\\d+),(\\d+)\\]",
-            convert = TRUE)
-
-  exec_err_post_mean <- mu_df %>%
-    full_join(tau_df) %>%
-    full_join(rho_df) %>%
-    full_join(t_df)
+  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
+    group_by(serve_num, court_side, serve_dir) %>%
+    summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
 
   ellipse_df <- exec_err_post_mean %>%
     pmap_dfr(function(serve_num, court_side, serve_dir, mu_x, mu_y, tau_x, tau_y, rho, t, ...) {
@@ -118,10 +74,12 @@ illustrate_execution_error = function(server_name) {
     })
 
   ellipse_df <- ellipse_df |>
-    mutate(spot = case_when(court_side == 1 & serve_dir == 1 ~ "deuce tee",
-                            court_side == 2 & serve_dir == 1 ~ "ad wide",
-                            court_side == 1 & serve_dir == 2 ~ "deuce wide",
-                            court_side == 2 & serve_dir == 2 ~ "ad tee"),
+    mutate(spot = case_when(
+             court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
+             court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
+             court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
+             court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
+           ),
            spot = factor(spot, levels = c("deuce wide",
                                           "deuce tee",
                                           "ad tee",
@@ -130,7 +88,7 @@ illustrate_execution_error = function(server_name) {
              serve_num == 1, "1st Serve", "2nd Serve"
            ),
            court_side = ifelse(
-             court_side == 1, "Deuce", "Ad"
+             court_side == "DeuceCourt", "Deuce", "Ad"
            ),
            court_side = factor(court_side, levels = c("Deuce", "Ad")))
 
@@ -257,10 +215,12 @@ illustrate_execution_error_2 = function(server_name) {
     })
 
   ellipse_df <- ellipse_df |>
-    mutate(spot = case_when(court_side == 1 & serve_dir == 1 ~ "deuce tee",
-                            court_side == 2 & serve_dir == 1 ~ "ad wide",
-                            court_side == 1 & serve_dir == 2 ~ "deuce wide",
-                            court_side == 2 & serve_dir == 2 ~ "ad tee"),
+    mutate(spot = case_when(
+             court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
+             court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
+             court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
+             court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
+           ),
            spot = factor(spot, levels = c("deuce wide",
                                           "deuce tee",
                                           "ad tee",
@@ -269,7 +229,7 @@ illustrate_execution_error_2 = function(server_name) {
              serve_num == 1, "1st Serve", "2nd Serve"
            ),
            court_side = ifelse(
-             court_side == 1, "Deuce", "Ad"
+             court_side == "DeuceCourt", "Deuce", "Ad"
            ),
            court_side = factor(court_side, levels = c("Deuce", "Ad")))
 

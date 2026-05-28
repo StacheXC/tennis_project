@@ -47,7 +47,7 @@ player_gamm = gamm4(point ~ s(x_serve_bounce,
                     data = pbp_df
 )
 
-saveRDS(player_gamm, "tennis_project/reward_surface/player_gamm_all.rds")
+# saveRDS(player_gamm, "tennis_project/reward_surface/player_gamm_all.rds")
 
 
 
@@ -138,7 +138,7 @@ value_all = bind_rows(
   value_du, value_ad
 )
 
-
+saveRDS(value_all, "tennis_project/reward_surface/reward_surface_all.rds")
 
 
 
