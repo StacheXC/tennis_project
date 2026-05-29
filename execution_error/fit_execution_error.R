@@ -289,9 +289,19 @@ fit_execution_error_rstan(server_name)
 #              "N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
 #              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV")
 # 
-# for (player in players) {
-#   fit_execution_error(player)
-# }
+
+players <- read_csv("tennis_project/data/misc/player_ids.csv") %>% 
+  pull(name) %>% 
+  unique()
+
+for (player in players) {
+  tryCatch({
+    fit_execution_error_rstan(player)
+    cat("SUCCESS:", player, "\n")
+  }, error = function(e) {
+    cat("ERROR:", player, "-", conditionMessage(e), "\n")
+  })
+}
 
 
 

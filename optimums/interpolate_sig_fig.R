@@ -1,6 +1,4 @@
 
-# Make a visual of interpolating sigma ------------------------------------
-
 interpolate_deuce <- function(x, y,
                               mu_W, mu_T,
                               sig_W, sig_T,
@@ -84,55 +82,3 @@ interpolate_ad <- function(x, y,
     t = t_interp
   ))
 }
-
-
-# mu_W <- c(5,4)
-# mu_T <- c(5,1)
-# sig_W <- c(1.7,1.4)
-# sig_T <- c(5,1)
-# corr_W <- .6
-# corr_T <- .1
-# t_W <- 3
-# t_T <- 2
-# x <- 6.41
-# y <- -2
-# 
-# interp <- interpolate_deuce(x, y, mu_W, mu_T, 
-#                           sig_W, sig_T, 
-#                           corr_W, corr_T,
-#                           t_W, t_T)
-
-# interp <- interpolate_ad(x, y, mu_W, mu_T, 
-#                             sig_W, sig_T, 
-#                             corr_W, corr_T,
-#                             t_W, t_T)
-
-# mu_interp <- c(x, y)
-# tau_interp <- interp$sig
-# rho_interp <- interp$corr
-
-# Create ellipses
-# Sigma_wide <- matrix(c(
-#   sig_W[1]^2, corr_W * sig_W[1] * sig_W[2],
-#   corr_W * sig_W[1] * sig_W[2], sig_W[2]^2
-# ), nrow = 2)
-# 
-# Sigma_t <- matrix(c(
-#   sig_T[1]^2, corr_T * sig_T[1] * sig_T[2],
-#   corr_T * sig_T[1] * sig_T[2], sig_T[2]^2
-# ), nrow = 2)
-# 
-# Sigma_interp <- matrix(c(
-#   tau_interp[1]^2, rho_interp * tau_interp[1] * tau_interp[2],
-#   rho_interp * tau_interp[1] * tau_interp[2], tau_interp[2]^2
-# ), nrow = 2)
-# 
-# ellipse_wide <- as.data.frame(ellipse(Sigma_wide, centre = mu_W, level = 0.95, npoints = 200)) %>%
-#   mutate(type = "Wide")
-# ellipse_t <- as.data.frame(ellipse(Sigma_t, centre = mu_T, level = 0.95, npoints = 200)) %>%
-#   mutate(type = "T")
-# ellipse_interp <- as.data.frame(ellipse(Sigma_interp, centre = mu_interp, level = 0.95, npoints = 200)) %>%
-#   mutate(type = "Interpolated")
-# 
-# # Combine all ellipses
-# ellipse_all <- bind_rows(ellipse_wide, ellipse_t, ellipse_interp)

@@ -1,16 +1,15 @@
 
 library(tidyverse)
-# library(fields)
 library(gamm4)
 
-players <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA", 
-             "N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV")
+# players <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
+#              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA", 
+#              "N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
+#              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV")
 
 pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>%  
   filter(
-    server_name %in% players,
+    # server_name %in% players,
     str_detect(match_id, "australian"),
     x_serve_bounce > 3,
     x_serve_bounce <= 6.4,
@@ -47,34 +46,6 @@ player_gamm = gamm4(point ~ s(x_serve_bounce,
                     data = pbp_df
 )
 
-# saveRDS(player_gamm, "tennis_project/reward_surface/player_gamm_all.rds")
-
-# Strip training data from gam object to reduce file size
-player_gamm_slim <- player_gamm
-player_gamm_slim$gam$data              <- NULL
-player_gamm_slim$gam$model             <- NULL
-player_gamm_slim$gam$residuals         <- NULL
-player_gamm_slim$gam$fitted.values     <- NULL
-player_gamm_slim$gam$linear.predictors <- NULL
-player_gamm_slim$gam$weights           <- NULL
-player_gamm_slim$gam$prior.weights     <- NULL
-player_gamm_slim$gam$y                 <- NULL
-player_gamm_slim$gam$offset            <- NULL
-
-# Extract random effects as small tibbles (replaces need to save $mer)
-re_server <- ranef(player_gamm$mer)$server_name |>
-  tibble::rownames_to_column("server_name") |>
-  rename(re = `(Intercept)`)
-
-re_returner <- ranef(player_gamm$mer)$returner |>
-  tibble::rownames_to_column("returner") |>
-  rename(re = `(Intercept)`)
-
-saveRDS(
-  list(gam = player_gamm_slim$gam, re_server = re_server, re_returner = re_returner),
-  "tennis_project/reward_surface/player_gamm_slim.rds"
-)
-
 
 
 speed_df = pbp_df %>%  
@@ -82,13 +53,13 @@ speed_df = pbp_df %>%
   summarize(serve_speed_kph = mean(serve_speed_kph)) %>% 
   ungroup()
 
-player_df <- read_csv(
-  "tennis_project/data/misc/player_ids.csv"
-) %>% 
-  select(name, player_handedness) %>% 
-  distinct() %>% 
-  filter(!is.na(player_handedness)) %>% 
-  rename(server_name = name, server_handedness = player_handedness)
+player_df = pbp_df %>%
+  select(server_name, server_handedness) %>%
+  distinct()
+
+players <- read.csv("tennis_project/data/misc/player_ids.csv") %>% 
+  pull(name) %>% 
+  unique()
 
 # Make predictions
 value_du = expand.grid(
@@ -164,23 +135,7 @@ value_all = bind_rows(
   value_du, value_ad
 )
 
-saveRDS(value_all, "tennis_project/reward_surface/reward_surface_all.rds")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+saveRDS(value_all, "tennis_project/reward_surface/reward_surface.rds")
 
 
 

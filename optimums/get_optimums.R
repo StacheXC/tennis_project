@@ -120,7 +120,8 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 
 get_optimums = function(server_name) {
 
-  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
+  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
+    filter(server_name == !!server_name)
 
   # Get posterior distribution data
   exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
@@ -134,8 +135,7 @@ get_optimums = function(server_name) {
 
       value_obj = value_all |>
         filter(court_side == !!court_side,
-               serve_num == !!serve_num,
-               server_name == !!server_name) |>
+               serve_num == !!serve_num) |>
         rename(x = x_serve_bounce, y = y_serve_bounce) |>
         select(x, y, v_hat)
       
