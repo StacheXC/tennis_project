@@ -20,20 +20,19 @@ geom_halfcourt <- function()  {
 }
 
 get_expected_value <- function(value_func, exec_err_post_mean,
-                               serve_num = 2,
-                               court_side = "DeuceCourt",
                                fault_value = -1) {
 
   # Create full grid
-  grid_df <- expand.grid(x = seq(0, 11.9, by = 0.1),
-                         y = seq(-5.5, 5.5, by = 0.1)) |>
-    mutate(x = round(x, 1), y = round(y, 1), v_hat = fault_value)
+  grid_df <- expand.grid(x_serve_bounce = seq(0, 11.9, by = 0.1),
+                         y_serve_bounce = seq(-5.5, 5.5, by = 0.1)) |>
+    mutate(x_serve_bounce = round(x_serve_bounce, 1),
+           y_serve_bounce = round(y_serve_bounce, 1),
+           v_hat = fault_value)
 
-  # Extract Parameters
-  row_W <- exec_err_post_mean |>
-    filter(serve_num == !!serve_num, court_side == !!court_side, serve_dir == "Wide")
-  row_T <- exec_err_post_mean |>
-    filter(serve_num == !!serve_num, court_side == !!court_side, serve_dir == "T")
+  # Extract Parameters (exec_err_post_mean already filtered to serve_num and court_side)
+  court_side <- exec_err_post_mean$court_side[1]
+  row_W <- exec_err_post_mean |> filter(serve_dir == "Wide")
+  row_T <- exec_err_post_mean |> filter(serve_dir == "T")
 
   mu_W   <- c(pull(row_W, mu_x), pull(row_W, mu_y))
   mu_T   <- c(pull(row_T, mu_x), pull(row_T, mu_y))
@@ -46,50 +45,52 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 
   # Clean and truncate value_func
   value_func <- value_func |>
-    mutate(x = round(x, 1), y = round(y, 1)) |>
+    mutate(x_serve_bounce = round(x_serve_bounce, 1),
+           y_serve_bounce = round(y_serve_bounce, 1)) |>
     rowwise() |>
     mutate(t_interp = {
       interp <- if (court_side == "DeuceCourt") {
-        interpolate_deuce(x, y, mu_W, mu_T, sig_W, sig_T, corr_W, corr_T, t_W, t_T)
+        interpolate_deuce(x_serve_bounce, y_serve_bounce,
+                          mu_W, mu_T, sig_W, sig_T, corr_W, corr_T, t_W, t_T)
       } else {
-        interpolate_ad(x, y, mu_W, mu_T, sig_W, sig_T, corr_W, corr_T, t_W, t_T)
+        interpolate_ad(x_serve_bounce, y_serve_bounce,
+                       mu_W, mu_T, sig_W, sig_T, corr_W, corr_T, t_W, t_T)
       }
       interp$t
     }) |>
     ungroup() |>
-    mutate(v_hat = ifelse(x < t_interp, fault_value, v_hat)) |>
-    select(x, y, v_hat)
+    mutate(v_hat = ifelse(x_serve_bounce < t_interp, fault_value, v_hat)) |>
+    select(x_serve_bounce, y_serve_bounce, v_hat)
 
   # Merge into grid
   grid_df <- grid_df |>
-    left_join(value_func, by = c("x", "y"), suffix = c("", ".new")) |>
+    left_join(value_func, by = c("x_serve_bounce", "y_serve_bounce"), suffix = c("", ".new")) |>
     mutate(v_hat = ifelse(!is.na(v_hat.new), v_hat.new, v_hat)) |>
-    select(x, y, v_hat)
+    select(x_serve_bounce, y_serve_bounce, v_hat)
 
   # Create an empty vector to store results
   ev_list <- numeric(nrow(grid_df))
 
   # Convert full grid to matrix once
-  grid_mat <- as.matrix(grid_df[, c("x", "y")])
+  grid_mat <- as.matrix(grid_df[, c("x_serve_bounce", "y_serve_bounce")])
   v_vals <- grid_df$v_hat
 
   for (i in seq_len(nrow(grid_df))) {
     # Extract target (aiming location)
-    x <- grid_df$x[i]
-    y <- grid_df$y[i]
+    x_serve_bounce <- grid_df$x_serve_bounce[i]
+    y_serve_bounce <- grid_df$y_serve_bounce[i]
 
     # Interpolate parameters at this aim point
     if (court_side == "DeuceCourt") {
-      interp <- interpolate_deuce(x, y, mu_W, mu_T, sig_W, sig_T,
+      interp <- interpolate_deuce(x_serve_bounce, y_serve_bounce, mu_W, mu_T, sig_W, sig_T,
                                   corr_W, corr_T, t_W, t_T)
-    }
-    else {
-      interp <- interpolate_ad(x, y, mu_W, mu_T, sig_W, sig_T,
+    } else {
+      interp <- interpolate_ad(x_serve_bounce, y_serve_bounce, mu_W, mu_T, sig_W, sig_T,
                                corr_W, corr_T, t_W, t_T)
     }
 
     # Mean and covariance matrix
-    mu <- c(x, y)
+    mu <- c(x_serve_bounce, y_serve_bounce)
     sig <- interp$sig
     rho <- interp$corr
 
@@ -109,10 +110,7 @@ get_expected_value <- function(value_func, exec_err_post_mean,
   }
 
   # Combine into final dataframe
-  grid_df <- grid_df |>
-    mutate(ev_hat = ev_list)
-
-  grid_df
+  grid_df |> mutate(ev_hat = ev_list)
 
 }
 
@@ -141,17 +139,16 @@ get_contours = function(server_name) {
           filter(court_side == !!court_side,
                  serve_num == !!serve_num,
                  server_name == !!server_name) |>
-          rename(x = x_serve_bounce, y = y_serve_bounce) |>
-          select(x, y, v_hat)
+          select(x_serve_bounce, y_serve_bounce, v_hat)
 
         if (serve_num == 1) {
           fault_value = exec_err_post_draws |>
-            mutate(x = round(mu_x, 1),
-                   y = round(mu_y, 1)) |>
+            mutate(x_serve_bounce = round(mu_x, 1),
+                   y_serve_bounce = round(mu_y, 1)) |>
             filter(serve_num == 2,
                    court_side == !!court_side,
                    draw == i) |>
-            left_join(ev_df, by = c("x", "y")) |>
+            left_join(ev_df, by = c("x_serve_bounce", "y_serve_bounce")) |>
             slice_max(ev_hat) |>
             pull(ev_hat)
 
@@ -161,9 +158,7 @@ get_contours = function(server_name) {
 
         ev_df <- get_expected_value(
           value_obj,
-          exec_err_post_mean,
-          court_side = court_side,
-          serve_num = serve_num,
+          exec_err_post_mean |> filter(serve_num == !!serve_num, court_side == !!court_side),
           # fault_value = ifelse(serve_num == 2, -1, max(ev_df$ev_hat))
           fault_value = fault_value
         )
@@ -176,7 +171,7 @@ get_contours = function(server_name) {
           )
 
         results[[length(results) + 1]] <- ev_df |>
-          mutate(serve_dir = ifelse(abs(y) > 2, "Wide", "T")) |>
+          mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
           group_by(serve_num, court_side, serve_dir, draw) |>
           slice_max(ev_hat, n = 1) |>
           ungroup()

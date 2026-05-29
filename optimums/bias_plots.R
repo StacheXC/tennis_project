@@ -30,37 +30,18 @@ players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
 mu_means_list <- list()
 
 for (player in players) {
-  # Read in Stan fit for this player
   fit_path <- paste0("tennis_project/execution_error/players/", player, ".rds")
-  exec_err_fit <- readRDS(fit_path)
-  
-  # Extract posterior means for `mu`
-  mu_df <- exec_err_fit$summary(variables = "mu") %>%
-    select(variable, mean) %>%
-    tidyr::extract(
-      variable,
-      into = c("serve_num", "court_side", "serve_dir", "coord"),
-      regex = "mu\\[(\\d+),(\\d+),(\\d+),(\\d+)\\]",
-      convert = TRUE
-    ) %>%
-    mutate(
-      coord = if_else(coord == 1, "x", "y"),
-      player = player
-    ) %>%
-    pivot_wider(
-      names_from = coord,
-      values_from = mean
-    ) |> 
-    filter(serve_dir != 3)
-  
-  # Append to list
+
+  mu_df <- readRDS(fit_path) |>
+    group_by(serve_num, court_side, serve_dir) |>
+    summarise(mu_x = mean(mu_x), mu_y = mean(mu_y), .groups = "drop") |>
+    mutate(player = player)
+
   mu_means_list[[player]] <- mu_df
 }
 
 # Combine all players' data frames
-mu_means_all <- bind_rows(mu_means_list) |> 
-  mutate(court_side = ifelse(court_side == 1, "AdCourt", "DeuceCourt"),
-         serve_dir = ifelse(serve_dir == 1, "T", "Wide"))
+mu_means_all <- bind_rows(mu_means_list)
 
 
 
@@ -77,7 +58,7 @@ for (player in players) {
     # Read RDS file (assumed to contain data for all sides and serve numbers)
     opt_df <- readRDS(file_path) %>%
       mutate(player = player,
-             serve_dir = ifelse(abs(y) > 2, "Wide", "T")) |> 
+             serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
       group_by(serve_num, court_side, serve_dir) |> 
       slice_max(ev_hat) |> 
       ungroup()
@@ -101,16 +82,16 @@ optimums_all <- bind_rows(optimums_list)
 
 bias_df <- mu_means_all %>%
   left_join(
-    optimums_all %>% 
+    optimums_all %>%
       rename(
-        x_opt = x,
-        y_opt = y
+        x_opt = x_serve_bounce,
+        y_opt = y_serve_bounce
       ),
     by = c("player", "serve_num", "court_side", "serve_dir")
   ) %>%
   mutate(
-    diff_x = x - x_opt,
-    diff_y = y - y_opt
+    diff_x = mu_x - x_opt,
+    diff_y = mu_y - y_opt
   ) |> 
   mutate(
     spot = case_when(
@@ -121,59 +102,9 @@ bias_df <- mu_means_all %>%
     ),
     spot = factor(spot, levels = c("Deuce\nWide", "Deuce\nTee", "Ad\nTee", "Ad\nWide")),
     serve_num = ifelse(serve_num == 1, "1st\nServe", "2nd\nServe")
-  )
-  # mutate(diff_x = diff_x * 39.3701,
-  #        diff_y = diff_y * 39.3701)
-
-
-distance_df = bias_df %>% 
-  mutate(dist_from_opt = sqrt(diff_x^2 + diff_y^2))
-
-match_df = read_csv("tennis_project/data/catalogue_all_matches_available.csv")
-
-player_info = read_csv("tennis_project/data/player_ids.csv")
-
-match_df = match_df %>% 
-  filter(player1 %in% players,
-         player2 %in% players)
-
-match_ids = match_df %>% pull(match_id)
-
-winners = c()
-
-for (match_id in match_ids) {
-  current_match = read_csv(paste0("tennis_project/data/play_by_play/", match_id, "_pbp.csv"))
-  winner = current_match %>% slice_tail() %>% mutate(point_winner_id = as.character(point_winner_id)) %>% left_join(player_info, by = join_by(point_winner_id == id)) %>% pull(name)
-  winners = append(winners, winner)
-}
-
-match_df$winner = winners
-
-# Step 1: create a wide player-level table
-dist_wide <- distance_df %>%
-  mutate(
-    serve_num = gsub("\\s+", "_", serve_num),
-    court_side = gsub("\\s+", "_", court_side),
-    serve_dir = gsub("\\s+", "_", serve_dir),
-    combo = paste(serve_num, court_side, serve_dir, sep = "_")
-  ) %>%
-  select(player, combo, dist_from_opt) %>%
-  pivot_wider(
-    names_from = combo,
-    values_from = dist_from_opt
-  )
-
-# Step 2: join for player1
-match_df2 <- match_df %>%
-  left_join(dist_wide, by = c("player1" = "player")) %>%
-  rename_with(~ paste0("p1_", .), -c(names(match_df)))
-
-# Step 3: join for player2
-match_df2 <- match_df2 %>%
-  left_join(dist_wide, by = c("player2" = "player")) %>%
-  rename_with(~ paste0("p2_", .), 
-              starts_with("1st") | starts_with("2nd"))
-
+  ) %>% 
+  mutate(diff_x = diff_x * 39.3701,
+         diff_y = diff_y * 39.3701)
 
 
 
@@ -260,7 +191,7 @@ ggplot() +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray55") +
   geom_point(
     data = bias_df %>% filter(court_side == "DeuceCourt",
-                              player %in% female),
+                              player %in% male),
     aes(x = diff_x, y = diff_y, shape = factor(player)),
     size = 2, alpha = 0.7
   ) +
@@ -301,7 +232,7 @@ ggplot() +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray55") +
   geom_point(
     data = bias_df %>% filter(court_side == "AdCourt",
-                              player %in% female),
+                              player %in% male),
     aes(x = diff_x, y = diff_y, shape = factor(player)),
     size = 2, alpha = 0.7
   ) +

@@ -19,7 +19,6 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
-# use this one for cmdstanr
 illustrate_execution_error = function(server_name) {
 
   pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>%

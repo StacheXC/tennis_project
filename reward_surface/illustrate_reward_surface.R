@@ -16,11 +16,9 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
-server_name = "N.DJOKOVIC"
-
 illustrate_reward_surface = function(server_name) {
   
-  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
+  value_all = readRDS("tennis_project/reward_surface/reward_surface_2.rds") %>% 
     filter(
       server_name == !!server_name,
       x_serve_bounce > 3
@@ -63,6 +61,8 @@ illustrate_reward_surface = function(server_name) {
           plot.title = element_text(hjust = 0.5, size = 12))
   
 }
+
+server_name = "N.DJOKOVIC"
 
 illustrate_reward_surface(server_name)
 
