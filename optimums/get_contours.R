@@ -4,21 +4,6 @@ library(mvtnorm)
 
 source("tennis_project/optimums/interpolate_sig_fig.R")
 
-geom_halfcourt <- function()  {
-  court_dat <- data.frame(
-    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
-    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
-    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
-    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
-  )
-  geom_segment(aes(x = x,
-                   xend = xend,
-                   y = y,
-                   yend = yend),
-               data = court_dat,
-               color = "gray40")
-}
-
 get_expected_value <- function(value_func, exec_err_post_mean,
                                fault_value = -1) {
 
@@ -118,13 +103,13 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 
 get_contours = function(server_name) {
 
-  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
+  value_all = readRDS("tennis_project/reward_surface/reward_surface_2.rds")
 
   exec_err_post_draws <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds"))
 
   results <- list()
 
-  for (i in 1:100) {
+  for (i in 1:50) {
 
     cat(i, "\n")
 
@@ -182,7 +167,7 @@ get_contours = function(server_name) {
   }
 
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, paste0("tennis_project/optimums/", server_name, "_contours.rds"))
+  saveRDS(combined_df, paste0("tennis_project/optimums/", server_name, "_contours_2.rds"))
 
 }
 
