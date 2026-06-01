@@ -108,7 +108,7 @@ get_optimums = function(server_name) {
     filter(server_name == !!server_name)
 
   # Get posterior distribution data
-  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players_2/", server_name, ".rds")) %>%
+  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
 
