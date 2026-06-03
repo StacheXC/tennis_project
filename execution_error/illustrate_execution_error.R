@@ -21,11 +21,12 @@ geom_halfcourt <- function()  {
 
 illustrate_execution_error = function(server_name) {
 
-  pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>%
+  pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
     filter(
       server_name == !!server_name,
       str_detect(match_id, "australian"),
       x_serve_bounce > 3 | error_type == "Net Error",
+      x_serve_bounce < 3 | error_type != "Net Error" | is.na(error_type),
       x_serve_bounce < 9,
       abs(y_serve_bounce) < 5.48,
       y_serve_bounce > -1 | court_side == "AdCourt",
@@ -44,7 +45,7 @@ illustrate_execution_error = function(server_name) {
       court_side = factor(court_side, levels = c("Deuce", "Ad"))
     )
 
-  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
+  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players_theta/", server_name, ".rds")) %>%
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
 

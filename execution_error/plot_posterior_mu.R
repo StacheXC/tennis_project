@@ -19,7 +19,7 @@ geom_halfcourt <- function()  {
 
 plot_posterior_mu = function(server_name) {
   
-  mu_df <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
+  mu_df <- readRDS(paste0("tennis_project/execution_error/players_theta/", server_name, ".rds")) %>%
     select(draw, serve_num, court_side, serve_dir, mu_x, mu_y) %>%
     mutate(
       spot = case_when(

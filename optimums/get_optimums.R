@@ -104,7 +104,7 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 
 get_optimums = function(server_name) {
 
-  value_all = readRDS("tennis_project/reward_surface/reward_surface_2.rds") %>% 
+  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
     filter(server_name == !!server_name)
 
   # Get posterior distribution data
@@ -154,7 +154,7 @@ get_optimums = function(server_name) {
   }
   
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, paste0("tennis_project/optimums/players_2/", server_name, ".rds"))
+  saveRDS(combined_df, paste0("tennis_project/optimums/players/", server_name, ".rds"))
   
 }
 

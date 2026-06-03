@@ -18,7 +18,7 @@ geom_halfcourt <- function()  {
 
 illustrate_reward_surface = function(server_name) {
   
-  value_all = readRDS("tennis_project/reward_surface/reward_surface_2.rds") %>% 
+  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
     filter(
       server_name == !!server_name,
       x_serve_bounce > 3

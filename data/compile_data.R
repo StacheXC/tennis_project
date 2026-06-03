@@ -258,11 +258,6 @@ pbp_df <- map_dfr(match_df$match_id, function(match_id) {
 
 # save -------------------------------------------------------------------
 
-write_csv(
-  pbp_df,
-  "tennis_project/data/pbp_df.csv"
-)
-
-# saveRDS(pbp_df, "tennis_project/data/pbp_df.rds")
+saveRDS(pbp_df, "tennis_project/data/pbp_df.rds")
 
 

@@ -16,15 +16,14 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
-server_name = "N.DJOKOVIC"
-
 illustrate_data = function(server_name) {
   
-  pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>% 
+  pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>% 
     filter(
-      server_name == !!server_name,
+     server_name == !!server_name,
       str_detect(match_id, "australian"),
       x_serve_bounce > 3 | error_type == "Net Error",
+      x_serve_bounce < 3 | error_type != "Net Error" | is.na(error_type),
       x_serve_bounce < 9,
       abs(y_serve_bounce) < 5.48,
       y_serve_bounce > -1 | court_side == "AdCourt",
@@ -62,13 +61,6 @@ illustrate_data = function(server_name) {
 
 }
 
+server_name = "N.DJOKOVIC"
+
 illustrate_data(server_name)
-
-
-
-
-
-
-
-
-
