@@ -38,7 +38,7 @@ pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
 # Load posterior means for all players and pivot wide so each row has
 # both Wide and T parameters for a given (server, court_side, serve_num)
 params_wide <- map_dfr(players, function(player) {
-  readRDS(paste0("tennis_project/execution_error/players_theta/", player, ".rds")) |>
+  readRDS(paste0("tennis_project/execution_error/players_2/", player, ".rds")) |>
     group_by(serve_num, court_side, serve_dir) |>
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta), mean), .groups = "drop") |>
     mutate(server_name = player)
@@ -74,7 +74,7 @@ pbp_df <- pbp_df |>
     dens_Wide <- p$theta_Wide * dmvnorm(z, mean = c(p$mu_x_Wide, p$mu_y_Wide), sigma = Sigma_Wide)
     dens_T    <- p$theta_T    * dmvnorm(z, mean = c(p$mu_x_T,    p$mu_y_T),    sigma = Sigma_T)
 
-    data |> mutate(serve_dir = ifelse(dens_Wide > dens_T, "Wide", "T"))
+    data |> mutate(serve_dir_hat = ifelse(dens_Wide > dens_T, "Wide", "T"))
   }) |>
   ungroup() |>
   select(-matches("^(mu_x|mu_y|tau_x|tau_y|rho|theta)_"))
@@ -95,7 +95,7 @@ plot_serve_directions <- function(server_name) {
       serve_num  = ifelse(serve_num == 1, "1st Serve", "2nd Serve")
     )
 
-  ggplot(plot_df, aes(x = x_serve_bounce, y = y_serve_bounce, color = serve_dir)) +
+  ggplot(plot_df, aes(x = x_serve_bounce, y = y_serve_bounce, color = serve_dir_hat)) +
     geom_point(alpha = 0.6, size = 0.75) +
     geom_halfcourt() +
     facet_grid(court_side ~ serve_num, switch = "y") +

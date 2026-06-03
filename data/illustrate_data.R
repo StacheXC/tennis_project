@@ -20,7 +20,7 @@ illustrate_data = function(server_name) {
   
   pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>% 
     filter(
-     server_name == !!server_name,
+      server_name == !!server_name,
       str_detect(match_id, "australian"),
       x_serve_bounce > 3 | error_type == "Net Error",
       x_serve_bounce < 3 | error_type != "Net Error" | is.na(error_type),

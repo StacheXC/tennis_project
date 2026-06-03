@@ -45,7 +45,7 @@ illustrate_execution_error = function(server_name) {
       court_side = factor(court_side, levels = c("Deuce", "Ad"))
     )
 
-  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players_theta/", server_name, ".rds")) %>%
+  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players_2/", server_name, ".rds")) %>%
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
 

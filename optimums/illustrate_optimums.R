@@ -58,11 +58,8 @@ illustrate_optimums = function(server_name) {
   
 }
 
-server_name = "J.SINNER"
+server_name = "N.DJOKOVIC"
 
 illustrate_optimums(server_name)
-
-
-
 
 

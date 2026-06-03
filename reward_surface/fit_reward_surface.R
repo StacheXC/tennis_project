@@ -57,10 +57,6 @@ player_df = pbp_df %>%
   select(server_name, server_handedness) %>%
   distinct()
 
-players <- read.csv("tennis_project/data/misc/player_ids.csv") %>% 
-  pull(name) %>% 
-  unique()
-
 # Make predictions
 value_du = expand.grid(
   x_serve_bounce = seq(0, 6.4, by = 0.1),
