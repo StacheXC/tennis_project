@@ -19,8 +19,8 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
-illustrate_execution_error = function(server_name) {
-
+illustrate_execution_error_pooled = function(server_name) {
+  
   pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
     filter(
       server_name == !!server_name,
@@ -44,60 +44,61 @@ illustrate_execution_error = function(server_name) {
       ),
       court_side = factor(court_side, levels = c("Deuce", "Ad"))
     )
-
-  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
+  
+  exec_err_post_mean <- readRDS("tennis_project/execution_error/all_players.rds") %>%
+    filter(server_name == !! server_name) %>% 
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
-
+  
   ellipse_df <- exec_err_post_mean %>%
     pmap_dfr(function(serve_num, court_side, serve_dir, mu_x, mu_y, tau_x, tau_y, rho, t, ...) {
-
+      
       # Build covariance matrix
       Sigma <- matrix(c(
         tau_x^2, rho * tau_x * tau_y,
         rho * tau_x * tau_y, tau_y^2
       ), nrow = 2)
-
+      
       mu <- c(mu_x, mu_y)
-
+      
       # Get 95% contour points
       ellipse_points <- as.data.frame(ellipse(Sigma, centre = mu,
                                               level = 0.95, npoints = 200))
-
+      
       # Add grouping info to each point
       ellipse_points$serve_num <- serve_num
       ellipse_points$court_side <- court_side
       ellipse_points$serve_dir <- serve_dir
       ellipse_points$t <- t
-
+      
       return(ellipse_points)
     })
-
+  
   ellipse_df <- ellipse_df |>
     mutate(spot = case_when(
-             court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
-             court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
-             court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
-             court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
-           ),
-           spot = factor(spot, levels = c("deuce wide",
-                                          "deuce tee",
-                                          "ad tee",
-                                          "ad wide")),
-           serve_num = ifelse(
-             serve_num == 1, "1st Serve", "2nd Serve"
-           ),
-           court_side = ifelse(
-             court_side == "DeuceCourt", "Deuce", "Ad"
-           ),
-           court_side = factor(court_side, levels = c("Deuce", "Ad")))
-
+      court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
+      court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
+      court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
+      court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
+    ),
+    spot = factor(spot, levels = c("deuce wide",
+                                   "deuce tee",
+                                   "ad tee",
+                                   "ad wide")),
+    serve_num = ifelse(
+      serve_num == 1, "1st Serve", "2nd Serve"
+    ),
+    court_side = ifelse(
+      court_side == "DeuceCourt", "Deuce", "Ad"
+    ),
+    court_side = factor(court_side, levels = c("Deuce", "Ad")))
+  
   ellipse_obs_df <- ellipse_df %>%
     filter(x > t)
-
+  
   ellipse_cens_df <- ellipse_df %>%
     filter(x <= t)
-
+  
   ggplot() +
     geom_halfcourt() +
     geom_polygon(
@@ -133,10 +134,10 @@ illustrate_execution_error = function(server_name) {
           legend.text = element_text(size = 6),
           legend.background = element_rect(fill = "gray95", color = NA),
           plot.title = element_text(hjust = 0.5))
-
+  
 }
 
 server_name = "N.DJOKOVIC"
 
-illustrate_execution_error(server_name)
+illustrate_execution_error_pooled(server_name)
 

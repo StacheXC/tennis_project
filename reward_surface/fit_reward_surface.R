@@ -2,23 +2,30 @@
 library(tidyverse)
 library(gamm4)
 
-# players <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-#              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA", 
-#              "N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-#              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV")
+players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
+             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
+             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
+             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
-pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>%  
+pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%  
   filter(
-    # server_name %in% players,
+    server_name %in% players,
+    !is.na(x_serve_bounce),
+    !is.na(y_serve_bounce),
+    !is.na(serve_speed_kph),
+    !is.na(court_side),
+    !is.na(server_handedness),
+    !is.na(server_name),
+    !is.na(returner_name),
     str_detect(match_id, "australian"),
-    x_serve_bounce > 3,
+    x_serve_bounce >= 3,
     x_serve_bounce <= 6.4,
     abs(y_serve_bounce) <= 4.11,
     y_serve_bounce >= 0 | court_side == "AdCourt",
     y_serve_bounce <= 0 | court_side == "DeuceCourt",
-    !is_fault,
+    serve_speed_kph > 0,
     rally_length > 0,
-    serve_speed_kph > 0
+    !is_fault
   ) %>% 
   mutate(
     hand_position = case_when(
@@ -34,8 +41,6 @@ pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>%
     weights = 1 / ((rally_length + 1) %/% 2)
   )
 
-
-
 player_gamm = gamm4(point ~ s(x_serve_bounce,
                               y_serve_bounce,
                               serve_speed_kph,
@@ -45,8 +50,6 @@ player_gamm = gamm4(point ~ s(x_serve_bounce,
                     family = binomial,
                     data = pbp_df
 )
-
-
 
 speed_df = pbp_df %>%  
   group_by(server_name, serve_num) %>% 
@@ -62,7 +65,7 @@ value_du = expand.grid(
   x_serve_bounce = seq(0, 6.4, by = 0.1),
   y_serve_bounce = seq(0, 4.1, by = 0.1),
   serve_num = c(1, 2),
-  server_name = players
+  server_name = player_df$server_name
 ) %>% 
   left_join(player_df) %>% 
   left_join(speed_df) %>%  
@@ -98,7 +101,7 @@ value_ad = expand.grid(
   x_serve_bounce = seq(0, 6.4, by = 0.1),
   y_serve_bounce = seq(0, 4.1, by = 0.1),
   serve_num = c(1, 2),
-  server_name = players
+  server_name = player_df$server_name
 ) %>% 
   left_join(player_df) %>% 
   left_join(speed_df) %>% 
@@ -131,8 +134,4 @@ value_all = bind_rows(
   value_du, value_ad
 )
 
-saveRDS(value_all, "tennis_project/reward_surface/reward_surface.rds")
-
-
-
-
+saveRDS(value_all, "tennis_project/reward_surface/reward_surface_new.rds")
