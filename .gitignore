@@ -10,7 +10,4 @@
 .DS_Store
 
 # Large model files
-reward_surface/player_gamm.rds
-reward_surface/old/player_gamm.rds
-reward_surface/player_gamm_all.rds
-reward_surface/reward_surface_all.rds
+execution_error/execution_error.rds

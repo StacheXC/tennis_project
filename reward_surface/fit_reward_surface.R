@@ -2,14 +2,14 @@
 library(tidyverse)
 library(gamm4)
 
-players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
-             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
+# players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
+#              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
+#              "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
+#              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
 pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%  
   filter(
-    server_name %in% players,
+    # server_name %in% players,
     !is.na(x_serve_bounce),
     !is.na(y_serve_bounce),
     !is.na(serve_speed_kph),

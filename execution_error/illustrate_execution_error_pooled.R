@@ -45,7 +45,7 @@ illustrate_execution_error_pooled = function(server_name) {
       court_side = factor(court_side, levels = c("Deuce", "Ad"))
     )
   
-  exec_err_post_mean <- readRDS("tennis_project/execution_error/all_players.rds") %>%
+  exec_err_post_mean <- readRDS("tennis_project/execution_error/execution_error.rds") %>%
     filter(server_name == !! server_name) %>% 
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
