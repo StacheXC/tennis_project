@@ -100,15 +100,14 @@ get_expected_value <- function(value_func, exec_err_post_mean,
   
 }
 
+get_optimums = function(server_name, exec_err_post_mean, value_all) {
 
-
-get_optimums = function(server_name) {
-
-  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
+  value_all = value_all %>% 
     filter(server_name == !!server_name)
 
   # Get posterior distribution data
-  exec_err_post_mean <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds")) %>%
+  exec_err_post_mean <- exec_err_post_mean %>%
+    filter(server_name == !!server_name) %>% 
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
 
@@ -154,31 +153,26 @@ get_optimums = function(server_name) {
   }
   
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, paste0("tennis_project/optimums/players/", server_name, ".rds"))
+  saveRDS(combined_df, paste0("../optimums/players_2/", server_name, ".rds"))
   
 }
 
+exec_err_post_mean <- readRDS("../execution_error/execution_error.rds")
+
+value_all = readRDS("../reward_surface/reward_surface.rds")
+
 server_name = "N.DJOKOVIC"
 
-get_optimums(server_name)
+get_optimums(server_name, exec_err_post_mean, value_all)
 
 
 
-players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
-             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
-
-players <- c("R.FEDERER", "A.RUBLEV",
-             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
-
+players <- exec_err_post_mean %>% 
+  pull(server_name) %>% 
+  unique()
 
 for (player in players) {
   cat(player, "\n")
-  get_optimums(player)
+  get_optimums(player, exec_err_post_mean, value_all)
 }
-
-
-
 

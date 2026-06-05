@@ -17,7 +17,7 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
-df = readRDS("tennis_project/optimums/N.DJOKOVIC_contours_2.rds") %>% 
+df = readRDS("tennis_project/optimums/N.DJOKOVIC_contours.rds") %>% 
   mutate(
     spot = case_when(
       court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",

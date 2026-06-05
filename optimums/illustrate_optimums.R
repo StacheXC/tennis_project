@@ -18,7 +18,7 @@ geom_halfcourt <- function()  {
 
 illustrate_optimums = function(server_name) {
   
-  ev_df <- readRDS(paste0("tennis_project/optimums/players/", server_name, ".rds"))
+  ev_df <- readRDS(paste0("tennis_project/optimums/players_2/", server_name, ".rds"))
   
   ev_df <- ev_df |>
     mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T"),
@@ -61,5 +61,3 @@ illustrate_optimums = function(server_name) {
 server_name = "N.DJOKOVIC"
 
 illustrate_optimums(server_name)
-
-

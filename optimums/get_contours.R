@@ -1,3 +1,4 @@
+
 # Read in libraries
 library(tidyverse)
 library(mvtnorm)
@@ -99,13 +100,13 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 
 }
 
-
-
 get_contours = function(server_name) {
 
-  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
+  value_all = readRDS("../reward_surface/reward_surface.rds") %>% 
+    filter(server_name == !!server_name)
 
-  exec_err_post_draws <- readRDS(paste0("tennis_project/execution_error/players/", server_name, ".rds"))
+  exec_err_post_draws <- readRDS("../execution_error/execution_error.rds") %>% 
+    filter(server_name == !!server_name)
 
   results <- list()
 
@@ -122,8 +123,7 @@ get_contours = function(server_name) {
 
         value_obj = value_all |>
           filter(court_side == !!court_side,
-                 serve_num == !!serve_num,
-                 server_name == !!server_name) |>
+                 serve_num == !!serve_num) |>
           select(x_serve_bounce, y_serve_bounce, v_hat)
 
         if (serve_num == 1) {
@@ -167,7 +167,7 @@ get_contours = function(server_name) {
   }
 
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, paste0("tennis_project/optimums/", server_name, "_contours.rds"))
+  saveRDS(combined_df, paste0("../optimums/", server_name, "_contours.rds"))
 
 }
 
