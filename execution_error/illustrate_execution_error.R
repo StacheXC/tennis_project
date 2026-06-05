@@ -19,7 +19,7 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
-illustrate_execution_error_pooled = function(server_name) {
+illustrate_execution_error = function(server_name) {
   
   pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
     filter(
@@ -139,5 +139,5 @@ illustrate_execution_error_pooled = function(server_name) {
 
 server_name = "N.DJOKOVIC"
 
-illustrate_execution_error_pooled(server_name)
+illustrate_execution_error(server_name)
 

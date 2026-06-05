@@ -37,12 +37,9 @@ pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
 
 # Load posterior means for all players and pivot wide so each row has
 # both Wide and T parameters for a given (server, court_side, serve_num)
-params_wide <- map_dfr(players, function(player) {
-  readRDS(paste0("tennis_project/execution_error/players_2/", player, ".rds")) |>
-    group_by(serve_num, court_side, serve_dir) |>
-    summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta), mean), .groups = "drop") |>
-    mutate(server_name = player)
-}) |>
+params_wide <- readRDS("tennis_project/execution_error/execution_error.rds") |>
+  group_by(server_name, serve_num, court_side, serve_dir) |>
+  summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta), mean), .groups = "drop") |>
   pivot_wider(
     names_from  = serve_dir,
     values_from = c(mu_x, mu_y, tau_x, tau_y, rho, theta)
@@ -114,10 +111,5 @@ plot_serve_directions <- function(server_name) {
 }
 
 plot_serve_directions("N.DJOKOVIC")
-
-
-
-
-
 
 

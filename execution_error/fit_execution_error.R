@@ -2,7 +2,7 @@
 library(tidyverse)
 library(rstan)
 
-fit_execution_error_pooled = function() {
+fit_execution_error = function() {
   
   pbp_df <- readRDS("../data/pbp_df.rds") %>% 
     filter(
@@ -76,7 +76,7 @@ fit_execution_error_pooled = function() {
     c_ind_court  = c_ind_court
   )
 
-  model <- stan_model("../execution_error/execution_error_pooled.stan")
+  model <- stan_model("../execution_error/execution_error.stan")
   
   fit <- sampling(
     model,
@@ -142,10 +142,10 @@ fit_execution_error_pooled = function() {
     mutate(server_name = player_levels[player]) %>%
     select(-player)
 
-  saveRDS(draws_processed, "../execution_error/all_players.rds")
+  saveRDS(draws_processed, "../execution_error/execution_error.rds")
 
   cat("Saved", N_player, "players to all_players.rds\n")
 
 }
 
-fit_execution_error_pooled()
+fit_execution_error()
