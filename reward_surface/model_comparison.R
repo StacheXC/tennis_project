@@ -8,7 +8,7 @@ players <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
              "N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV")
 
-pbp_df = read_csv("tennis_project/data/pbp_df.csv") %>%  
+pbp_df = read_csv("tennis_project/data/pbp_df.rds") %>%  
   filter(
     server_name %in% players,
     str_detect(match_id, "australian"),

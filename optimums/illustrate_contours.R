@@ -17,7 +17,7 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
-df = readRDS("tennis_project/optimums/N.DJOKOVIC_contours.rds") %>% 
+df = readRDS("tennis_project/optimums/contours.rds") %>% 
   mutate(
     spot = case_when(
       court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
@@ -30,12 +30,6 @@ df = readRDS("tennis_project/optimums/N.DJOKOVIC_contours.rds") %>%
     court_side = ifelse(court_side == "DeuceCourt", "Deuce", "Ad"),
     court_side = factor(court_side, levels = c("Deuce", "Ad"))
   )
-
-# df = df %>% 
-#   mutate(
-#     x_serve_bounce = rnorm(nrow(df), x_serve_bounce, .05),
-#     y_serve_bounce = rnorm(nrow(df), y_serve_bounce, .05),
-#   )
 
 ggplot() +
   geom_halfcourt() +
@@ -51,6 +45,25 @@ ggplot() +
     contour_var = "ndensity", # normalized density 0-1
     breaks = c(0.05, 1),
     alpha = 0.2) +
+  facet_grid(court_side ~ serve_num, switch = "y") +
+  scale_fill_colorblind() +
+  scale_color_colorblind() +
+  labs(x = "", y = "", title = "N.DJOKOVIC") +
+  coord_equal() +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom",
+        strip.text.y.left = element_text(angle = 0),
+        legend.title = element_text(size = 6, face = "bold"), 
+        legend.text = element_text(size = 6),
+        legend.background = element_rect(fill = "gray95", color = NA),
+        plot.title = element_text(hjust = 0.5))
+
+ggplot() +
+  geom_halfcourt() +
+  geom_point(data = df,
+             aes(x = x_serve_bounce, y = y_serve_bounce)) +
   facet_grid(court_side ~ serve_num, switch = "y") +
   scale_fill_colorblind() +
   scale_color_colorblind() +
