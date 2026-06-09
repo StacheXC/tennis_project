@@ -3,7 +3,7 @@
 library(tidyverse)
 library(mvtnorm)
 
-source("tennis_project/optimums/interpolate_sig_fig.R")
+source("tennis_project/utils.R")
 
 get_expected_value <- function(value_func, exec_err_post_mean,
                                fault_value = -1) {
@@ -152,27 +152,21 @@ get_optimums = function(server_name, exec_err_post_mean, value_all) {
     }
   }
   
-  combined_df <- bind_rows(results)
-  saveRDS(combined_df, paste0("../optimums/players_2/", server_name, ".rds"))
-  
+  bind_rows(results) |> mutate(server_name = server_name)
+
 }
 
-exec_err_post_mean <- readRDS("../execution_error/execution_error.rds")
+exec_err_post_mean <- readRDS("tennis_project/execution_error/execution_error.rds")
 
-value_all = readRDS("../reward_surface/reward_surface.rds")
+value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
 
-server_name = "N.DJOKOVIC"
-
-get_optimums(server_name, exec_err_post_mean, value_all)
-
-
-
-players <- exec_err_post_mean %>% 
-  pull(server_name) %>% 
+players <- exec_err_post_mean %>%
+  pull(server_name) %>%
   unique()
 
-for (player in players) {
+optimums_all <- map_dfr(players, function(player) {
   cat(player, "\n")
   get_optimums(player, exec_err_post_mean, value_all)
-}
+})
 
+saveRDS(optimums_all, "tennis_project/optimums/optimums.rds")

@@ -1,24 +1,7 @@
+
 # Bias plots
 library(tidyverse)
-library(glue)
 library(ggthemes)
-
-geom_halfcourt <- function()  {
-  court_dat <- data.frame(
-    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
-    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
-    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
-    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
-  )
-  geom_segment(aes(x = x,
-                   xend = xend,
-                   y = y,
-                   yend = yend),
-               data = court_dat,
-               color = "gray40")
-}
-
-
 
 # Vector of player names
 players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
@@ -26,59 +9,18 @@ players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
              "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
-# Initialize empty list to store data frames
-mu_means_list <- list()
+# Load execution error model once and summarise posterior means for all players
+mu_means_all <- readRDS("tennis_project/execution_error/execution_error.rds") |>
+  group_by(server_name, serve_num, court_side, serve_dir) |>
+  summarise(mu_x = mean(mu_x), mu_y = mean(mu_y), .groups = "drop")
 
-for (player in players) {
-  fit_path <- paste0("tennis_project/execution_error/players/", player, ".rds")
-
-  mu_df <- readRDS(fit_path) |>
-    group_by(serve_num, court_side, serve_dir) |>
-    summarise(mu_x = mean(mu_x), mu_y = mean(mu_y), .groups = "drop") |>
-    mutate(player = player)
-
-  mu_means_list[[player]] <- mu_df
-}
-
-# Combine all players' data frames
-mu_means_all <- bind_rows(mu_means_list)
-
-
-
-
-
-
-optimums_list <- list()
-
-for (player in players) {
-  # Build file path (now just based on player)
-  file_path <- paste0("tennis_project/optimums/players/", player, ".rds")
-  
-  if (file.exists(file_path)) {
-    # Read RDS file (assumed to contain data for all sides and serve numbers)
-    opt_df <- readRDS(file_path) %>%
-      mutate(player = player,
-             serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
-      group_by(serve_num, court_side, serve_dir) |> 
-      slice_max(ev_hat) |> 
-      ungroup()
-    
-    # Store in list
-    optimums_list[[length(optimums_list) + 1]] <- opt_df
-  } else {
-    warning(glue::glue("File not found: {file_path}"))
-  }
-}
-
-# Combine all into one tibble
-optimums_all <- bind_rows(optimums_list)
-
-
-
-
-
-
-
+# Load optimums for all players
+optimums_all <- readRDS("tennis_project/optimums/optimums.rds") |>
+  mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
+  group_by(server_name, serve_num, court_side, serve_dir) |>
+  slice_max(ev_hat) |>
+  ungroup() |>
+  rename(player = server_name)
 
 bias_df <- mu_means_all %>%
   left_join(
@@ -105,8 +47,6 @@ bias_df <- mu_means_all %>%
   ) %>% 
   mutate(diff_x = diff_x * 39.3701,
          diff_y = diff_y * 39.3701)
-
-
 
 # For plot
 manual_shapes <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
@@ -162,94 +102,57 @@ quad_rects <- map_dfr(
     spot = factor(spot, levels = spot_levels)
   )
 
-
-
-
-
-
 male <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
           "A.ZVEREV", "J.ISNER", "R.FEDERER")
 
 female <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA",
             "N.OSAKA", "S.KENIN", "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
+plot_bias <- function(court_side, player_group) {
 
+  court_label  <- ifelse(court_side == "DeuceCourt", "Deuce", "Ad")
+  court_prefix <- substr(court_label, 1, 1)
 
-## Deuce Court -----
+  ggplot() +
+    geom_rect(
+      data = quad_rects %>% filter(substr(spot, 1, 1) == court_prefix),
+      aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
+      alpha = 0.2, color = NA
+    ) +
+    geom_hline(data = gridlines_df, aes(yintercept = yintercept),
+               color = "gray75", linewidth = 0.3) +
+    geom_vline(data = gridlines_df, aes(xintercept = xintercept),
+               color = "gray75", linewidth = 0.3) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray55") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray55") +
+    geom_point(
+      data = bias_df %>% filter(court_side == !!court_side,
+                                player %in% player_group),
+      aes(x = diff_x, y = diff_y, shape = factor(player)),
+      size = 2, alpha = 0.7
+    ) +
+    facet_grid(spot ~ serve_num) +
+    scale_shape_manual(values = manual_shapes, name = "Player") +
+    scale_fill_manual(
+      values = quad_colors,
+      name = "Observed error\nrelative to optimum"
+    ) +
+    coord_fixed() +
+    labs(
+      title = paste0("Strategic Bias (Subconscious) - ", court_label, " Court"),
+      x = expression(hat(mu)[x] - hat(mu)[x]^"OPT"),
+      y = expression(hat(mu)[y] - hat(mu)[y]^"OPT")
+    ) +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(),
+      strip.text.y.right = element_text(angle = 0),
+      axis.title.y = element_text(angle = 0, vjust = 0.5)
+    )
+}
 
-ggplot() +
-  geom_rect(
-    data = quad_rects %>% filter(substr(spot, 1, 1) == "D"),
-    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
-    alpha = 0.2, color = NA
-  ) +
-  geom_hline(data = gridlines_df, aes(yintercept = yintercept),
-             color = "gray75", linewidth = 0.3) +
-  geom_vline(data = gridlines_df, aes(xintercept = xintercept),
-             color = "gray75", linewidth = 0.3) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray55") +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "gray55") +
-  geom_point(
-    data = bias_df %>% filter(court_side == "DeuceCourt",
-                              player %in% male),
-    aes(x = diff_x, y = diff_y, shape = factor(player)),
-    size = 2, alpha = 0.7
-  ) +
-  facet_grid(spot ~ serve_num) +
-  scale_shape_manual(values = manual_shapes, name = "Player") +
-  scale_fill_manual(
-    values = quad_colors,
-    name = "Observed error\nrelative to optimum"
-  ) +
-  coord_fixed() +
-  labs(
-    title = "Strategic Bias (Subconscious) - Deuce Court",
-    x = expression(hat(mu)[x] - hat(mu)[x]^"OPT"),
-    y = expression(hat(mu)[y] - hat(mu)[y]^"OPT")
-  ) +
-  theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    strip.text.y.right = element_text(angle = 0),
-    axis.title.y = element_text(angle = 0, vjust = 0.5)
-  )
+plot_bias("DeuceCourt", male)
+plot_bias("AdCourt", male)
 
-
-## Ad Court -----
-
-ggplot() +
-  geom_rect(
-    data = quad_rects %>% filter(substr(spot, 1, 1) == "A"),
-    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
-    alpha = 0.2, color = NA
-  ) +
-  geom_hline(data = gridlines_df, aes(yintercept = yintercept),
-             color = "gray75", linewidth = 0.3) +
-  geom_vline(data = gridlines_df, aes(xintercept = xintercept),
-             color = "gray75", linewidth = 0.3) +
-  facet_grid(spot ~ serve_num) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray55") +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "gray55") +
-  geom_point(
-    data = bias_df %>% filter(court_side == "AdCourt",
-                              player %in% male),
-    aes(x = diff_x, y = diff_y, shape = factor(player)),
-    size = 2, alpha = 0.7
-  ) +
-  scale_shape_manual(values = manual_shapes, name = "Player") +
-  scale_fill_manual(
-    values = quad_colors,
-    name = "Observed error\nrelative to optimum"
-  ) +
-  coord_fixed() +
-  labs(
-    title = "Strategic Bias (Subconscious) - Ad Court",
-    x = expression(hat(mu)[x] - hat(mu)[x]^"OPT"),
-    y = expression(hat(mu)[y] - hat(mu)[y]^"OPT")
-  ) +
-  theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    strip.text.y.right = element_text(angle = 0),
-    axis.title.y = element_text(angle = 0, vjust = 0.5)
-  )
+plot_bias("DeuceCourt", female)
+plot_bias("AdCourt", female)

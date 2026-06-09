@@ -2,37 +2,24 @@
 library(tidyverse)
 library(ggthemes)
 
-geom_halfcourt <- function()  {
-  court_dat <- data.frame(
-    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
-    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
-    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
-    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
-  )
-  geom_segment(aes(x = x,
-                   xend = xend,
-                   y = y,
-                   yend = yend),
-               data = court_dat,
-               color = "gray40")
-}
+source("tennis_project/utils.R")
 
-plot_posterior_mu = function(server_name) {
+plot_posterior_mu = function(server_name, exec_err_fit) {
   
-  mu_df <- readRDS("tennis_project/execution_error/execution_error.rds") %>%
+  mu_df <- exec_err_fit %>%
     filter(server_name == !!server_name) %>% 
     select(draw, serve_num, court_side, serve_dir, mu_x, mu_y) %>%
     mutate(
       spot = case_when(
-        court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
         court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
+        court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
         court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
         court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
       ),
       spot = factor(spot, levels = c("deuce wide", "deuce tee", "ad tee", "ad wide")),
       serve_num = ifelse(serve_num == 1, "1st Serve", "2nd Serve"),
-      court_side = ifelse(court_side == "DeuceCourt", "Deuce", "Ad"),
-      court_side = factor(court_side, levels = c("Deuce", "Ad"))
+      court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
+      court_side = factor(court_side, levels = c("Deuce Court", "Ad Court"))
     )
   
   ggplot() +
@@ -68,4 +55,6 @@ plot_posterior_mu = function(server_name) {
 
 server_name = "N.DJOKOVIC"
 
-plot_posterior_mu(server_name)
+exec_err_fit = readRDS("tennis_project/execution_error/execution_error.rds")
+
+plot_posterior_mu(server_name, exec_err_fit)

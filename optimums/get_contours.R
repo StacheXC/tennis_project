@@ -3,7 +3,7 @@
 library(tidyverse)
 library(mvtnorm)
 
-source("tennis_project/optimums/interpolate_sig_fig.R")
+source("tennis_project/utils.R")
 
 get_expected_value <- function(value_func, exec_err_post_mean,
                                fault_value = -1) {

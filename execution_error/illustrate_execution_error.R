@@ -4,24 +4,11 @@ library(ellipse)
 library(ggpattern)
 library(ggthemes)
 
-geom_halfcourt <- function()  {
-  court_dat <- data.frame(
-    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
-    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
-    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
-    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
-  )
-  geom_segment(aes(x = x,
-                   xend = xend,
-                   y = y,
-                   yend = yend),
-               data = court_dat,
-               color = "gray40")
-}
+source("tennis_project/utils.R")
 
-illustrate_execution_error = function(server_name) {
+illustrate_execution_error = function(server_name, pbp_df, exec_err_fit) {
   
-  pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
+  pbp_df = pbp_df %>%
     filter(
       server_name == !!server_name,
       str_detect(match_id, "australian"),
@@ -34,19 +21,21 @@ illustrate_execution_error = function(server_name) {
     ) %>%
     mutate(
       x_serve_bounce = ifelse(
-        x_serve_bounce < 3, runif(sum(x_serve_bounce < 3), -.2, 0), x_serve_bounce
+        x_serve_bounce < 3, runif(n(), -.2, 0), x_serve_bounce
       ),
       serve_num = ifelse(
         serve_num == 1, "1st Serve", "2nd Serve"
       ),
       court_side = ifelse(
-        court_side == "DeuceCourt", "Deuce", "Ad"
+        court_side == "DeuceCourt", "Deuce Court", "Ad Court"
       ),
-      court_side = factor(court_side, levels = c("Deuce", "Ad"))
+      court_side = factor(
+        court_side, levels = c("Deuce Court", "Ad Court")
+      )
     )
   
-  exec_err_post_mean <- readRDS("tennis_project/execution_error/execution_error.rds") %>%
-    filter(server_name == !! server_name) %>% 
+  exec_err_post_mean <- exec_err_fit %>%
+    filter(server_name == !!server_name) %>% 
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
   
@@ -76,8 +65,8 @@ illustrate_execution_error = function(server_name) {
   
   ellipse_df <- ellipse_df |>
     mutate(spot = case_when(
-      court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
       court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
+      court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
       court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
       court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
     ),
@@ -89,9 +78,11 @@ illustrate_execution_error = function(server_name) {
       serve_num == 1, "1st Serve", "2nd Serve"
     ),
     court_side = ifelse(
-      court_side == "DeuceCourt", "Deuce", "Ad"
+      court_side == "DeuceCourt", "Deuce Court", "Ad Court"
     ),
-    court_side = factor(court_side, levels = c("Deuce", "Ad")))
+    court_side = factor(
+      court_side, levels = c("Deuce Court", "Ad Court")
+    ))
   
   ellipse_obs_df <- ellipse_df %>%
     filter(x > t)
@@ -139,5 +130,8 @@ illustrate_execution_error = function(server_name) {
 
 server_name = "N.DJOKOVIC"
 
-illustrate_execution_error(server_name)
+pbp_df = readRDS("tennis_project/data/pbp_df.rds")
 
+exec_err_fit = readRDS("tennis_project/execution_error/execution_error.rds")
+
+illustrate_execution_error(server_name, pbp_df, exec_err_fit)

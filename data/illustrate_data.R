@@ -1,24 +1,11 @@
 
 library(tidyverse)
 
-geom_halfcourt <- function()  {
-  court_dat <- data.frame(
-    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
-    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
-    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
-    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
-  )
-  geom_segment(aes(x = x,
-                   xend = xend,
-                   y = y,
-                   yend = yend),
-               data = court_dat,
-               color = "gray40")
-}
+source("tennis_project/utils.R")
 
-illustrate_data = function(server_name) {
+illustrate_data = function(server_name, pbp_df) {
   
-  pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>% 
+  pbp_df = pbp_df %>% 
     filter(
       server_name == !!server_name,
       str_detect(match_id, "australian"),
@@ -31,16 +18,16 @@ illustrate_data = function(server_name) {
     ) %>% 
     mutate(
       x_serve_bounce = ifelse(
-        x_serve_bounce < 3, runif(sum(x_serve_bounce < 3), -.2, 0), x_serve_bounce
+        x_serve_bounce < 3, runif(n(), -.2, 0), x_serve_bounce
       ),
       serve_num = ifelse(
         serve_num == 1, "1st Serve", "2nd Serve"
       ),
       court_side = ifelse(
-        court_side == "DeuceCourt", "Deuce", "Ad"
+        court_side == "DeuceCourt", "Deuce Court", "Ad Court"
       ),
       court_side = factor(
-        court_side, levels = c("Deuce", "Ad")
+        court_side, levels = c("Deuce Court", "Ad Court")
       )
     )
   
@@ -63,4 +50,6 @@ illustrate_data = function(server_name) {
 
 server_name = "N.DJOKOVIC"
 
-illustrate_data(server_name)
+pbp_df = readRDS("tennis_project/data/pbp_df.rds")
+
+illustrate_data(server_name, pbp_df)

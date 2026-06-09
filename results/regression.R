@@ -19,14 +19,13 @@ geom_halfcourt <- function()  {
 }
 
 players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "R.FEDERER", "A.RUBLEV",
+             "A.ZVEREV", "R.FEDERER", "A.RUBLEV", "J.ISNER",
              "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
 # Load pbp data
 pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
   filter(
-    server_name %in% players,
     str_detect(match_id, "australian"),
     x_serve_bounce > 3 | error_type == "Net Error",
     x_serve_bounce < 9,
@@ -74,7 +73,7 @@ pbp_df <- pbp_df |>
     data |> mutate(serve_dir_hat = ifelse(dens_Wide > dens_T, "Wide", "T"))
   }) |>
   ungroup() |>
-  select(-matches("^(mu_x|mu_y|tau_x|tau_y|rho|theta)_"))
+  select(-matches("^(mu_x|mu_y|tau_x|tau_y|rho|theta|t)_"))
 
 
 plot_serve_directions <- function(server_name) {
@@ -82,9 +81,9 @@ plot_serve_directions <- function(server_name) {
   plot_df <- pbp_df |>
     filter(server_name == !!server_name) |>
     mutate(
-      x_serve_bounce = ifelse(
+      x_serve_bounce = if_else(
         !is.na(x_serve_bounce) & x_serve_bounce < 3,
-        runif(sum(!is.na(x_serve_bounce) & x_serve_bounce < 3), -.2, 0),
+        runif(n(), -.2, 0),
         x_serve_bounce
       ),
       court_side = ifelse(court_side == "DeuceCourt", "Deuce", "Ad"),
@@ -111,5 +110,55 @@ plot_serve_directions <- function(server_name) {
 }
 
 plot_serve_directions("N.DJOKOVIC")
+
+
+
+# Regression ---------------------------------------------------------------
+
+# Posterior means per server/serve_num/court_side/serve_dir
+posterior_means <- readRDS("tennis_project/execution_error/execution_error.rds") |>
+  group_by(server_name, serve_num, court_side, serve_dir) |>
+  summarise(mu_x = mean(mu_x), mu_y = mean(mu_y), .groups = "drop")
+
+# Optimal aim points per server/serve_num/court_side/serve_dir
+optimums_all <- readRDS("tennis_project/optimums/optimums.rds") |>
+  mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
+  group_by(server_name, serve_num, court_side, serve_dir) |>
+  slice_max(ev_hat, n = 1) |>
+  ungroup() |>
+  select(server_name, serve_num, court_side, serve_dir,
+         x_opt = x_serve_bounce, y_opt = y_serve_bounce)
+
+# Euclidean distance between posterior mean aim and optimal aim
+distance_df <- posterior_means |>
+  left_join(optimums_all, by = c("server_name", "serve_num", "court_side", "serve_dir")) |>
+  mutate(distance = sqrt((mu_x - x_opt)^2 + (mu_y - y_opt)^2)) |>
+  select(server_name, serve_num, court_side, serve_dir, distance)
+
+# Build binomial regression data
+reg_df <- pbp_df |>
+  mutate(point = point_winner_id == server_id) |>
+  group_by(server_name, returner_name, serve_num, court_side, serve_dir_hat) |>
+  summarise(
+    n    = n(),
+    wins = sum(point, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(region_hat = paste(court_side, serve_dir_hat, sep = "_")) |>
+  left_join(distance_df,
+            by = c("server_name", "serve_num", "court_side",
+                   "serve_dir_hat" = "serve_dir"))
+
+reg_df <- reg_df %>% 
+  rename(dist_from_opt = distance)
+
+# Fit logistic regression
+fit <- glm(
+  cbind(wins, n - wins) ~ server_name + returner_name + region_hat + serve_num + dist_from_opt,
+  family = binomial,
+  data   = reg_df
+)
+
+summary(fit)
 
 

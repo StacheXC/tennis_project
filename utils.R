@@ -1,4 +1,19 @@
 
+geom_halfcourt <- function()  {
+  court_dat <- data.frame(
+    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
+    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
+    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
+    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
+  )
+  geom_segment(aes(x = x,
+                   xend = xend,
+                   y = y,
+                   yend = yend),
+               data = court_dat,
+               color = "gray40")
+}
+
 interpolate_deuce <- function(x, y,
                               mu_W, mu_T,
                               sig_W, sig_T,
@@ -42,7 +57,6 @@ interpolate_deuce <- function(x, y,
   ))
 }
 
-
 interpolate_ad <- function(x, y,
                            mu_W, mu_T,
                            sig_W, sig_T,
@@ -82,3 +96,8 @@ interpolate_ad <- function(x, y,
     t = t_interp
   ))
 }
+
+# players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
+#              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
+#              "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
+#              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")

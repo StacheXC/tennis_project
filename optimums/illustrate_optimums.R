@@ -1,29 +1,15 @@
 
 library(tidyverse)
 
-geom_halfcourt <- function()  {
-  court_dat <- data.frame(
-    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
-    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
-    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
-    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
-  )
-  geom_segment(aes(x = x,
-                   xend = xend,
-                   y = y,
-                   yend = yend),
-               data = court_dat,
-               color = "gray40")
-}
+source("tennis_project/utils.R")
 
-illustrate_optimums = function(server_name) {
+illustrate_optimums = function(server_name, ev_df) {
   
-  ev_df <- readRDS(paste0("tennis_project/optimums/players/", server_name, ".rds"))
-  
-  ev_df <- ev_df |>
+  ev_df = ev_df |>
+    filter(server_name == !!server_name) %>% 
     mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T"),
-           court_side = ifelse(court_side == "DeuceCourt", "Deuce", "Ad"),
-           court_side = factor(court_side, levels = c("Deuce", "Ad")),
+           court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
+           court_side = factor(court_side, levels = c("Deuce Court", "Ad Court")),
            serve_num = ifelse(serve_num == 1, "1st Serve", "2nd Serve"))
   
   optimal_aim_points <- ev_df |>
@@ -60,4 +46,6 @@ illustrate_optimums = function(server_name) {
 
 server_name = "N.DJOKOVIC"
 
-illustrate_optimums(server_name)
+ev_df = readRDS("tennis_project/optimums/optimums.rds")
+
+illustrate_optimums(server_name, ev_df)
