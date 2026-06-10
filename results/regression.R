@@ -3,31 +3,13 @@ library(tidyverse)
 library(mvtnorm)
 library(ggthemes)
 
-geom_halfcourt <- function()  {
-  court_dat <- data.frame(
-    x = c(0, 0, 11.887, 0, 0, 0, 0, 6.4),
-    xend = c(11.887, 0, 11.887, 11.887, 11.887, 11.887, 6.4, 6.4),
-    y = c(5.486, 5.486, 5.486, -5.486, 4.115, -4.115, 0, 4.115),
-    yend = c(5.486, -5.486, -5.486, -5.486, 4.115, -4.115, 0, -4.115)
-  )
-  geom_segment(aes(x = x,
-                   xend = xend,
-                   y = y,
-                   yend = yend),
-               data = court_dat,
-               color = "gray40")
-}
-
-players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "R.FEDERER", "A.RUBLEV", "J.ISNER",
-             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
+source("tennis_project/utils.R")
 
 # Load pbp data
 pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
   filter(
     str_detect(match_id, "australian"),
-    x_serve_bounce > 3 | error_type == "Net Error",
+    x_serve_bounce < 3 | error_type != "Net Error" | is.na(error_type),
     x_serve_bounce < 9,
     abs(y_serve_bounce) < 5.48,
     y_serve_bounce > -1 | court_side == "AdCourt",
@@ -149,12 +131,13 @@ reg_df <- pbp_df |>
             by = c("server_name", "serve_num", "court_side",
                    "serve_dir_hat" = "serve_dir"))
 
-reg_df <- reg_df %>% 
+reg_df <- reg_df %>%
   rename(dist_from_opt = distance)
 
 # Fit logistic regression
 fit <- glm(
-  cbind(wins, n - wins) ~ server_name + returner_name + region_hat + serve_num + dist_from_opt,
+  cbind(wins, n - wins) ~ server_name + returner_name + region_hat + serve_num + dist_from_opt +
+    region_hat:dist_from_opt + serve_num:dist_from_opt,
   family = binomial,
   data   = reg_df
 )
@@ -162,3 +145,35 @@ fit <- glm(
 summary(fit)
 
 
+# Test total effect of dist_from_opt < 0 for each region x serve_num combination
+library(multcomp)
+
+# Strip aliased (NA) coefficients — these are always player dummies, never
+# dist_from_opt terms, so the corresponding L columns are zero and safe to drop
+keep       <- !is.na(coef(fit))
+coef_names <- names(coef(fit))[keep]
+p          <- length(coef_names)
+
+L <- matrix(0, nrow = 8, ncol = p,
+            dimnames = list(
+              c("AdCourt_T_s1", "AdCourt_Wide_s1", "DeuceCourt_T_s1", "DeuceCourt_Wide_s1",
+                "AdCourt_T_s2", "AdCourt_Wide_s2", "DeuceCourt_T_s2", "DeuceCourt_Wide_s2"),
+              coef_names
+            ))
+
+L[, "dist_from_opt"] <- 1
+
+L["AdCourt_Wide_s1",    "region_hatAdCourt_Wide:dist_from_opt"]    <- 1
+L["DeuceCourt_T_s1",    "region_hatDeuceCourt_T:dist_from_opt"]    <- 1
+L["DeuceCourt_Wide_s1", "region_hatDeuceCourt_Wide:dist_from_opt"] <- 1
+L["AdCourt_Wide_s2",    "region_hatAdCourt_Wide:dist_from_opt"]    <- 1
+L["DeuceCourt_T_s2",    "region_hatDeuceCourt_T:dist_from_opt"]    <- 1
+L["DeuceCourt_Wide_s2", "region_hatDeuceCourt_Wide:dist_from_opt"] <- 1
+
+L[1:4, "serve_num:dist_from_opt"] <- 1
+L[5:8, "serve_num:dist_from_opt"] <- 2
+
+hypotheses <- glht(fit, linfct = L, alternative = "less",
+                   coef. = function(x) coef(x)[keep],
+                   vcov. = function(x) vcov(x)[keep, keep])
+summary(hypotheses)

@@ -57,12 +57,6 @@ illustrate_contours(contours)
 
 
 
-
-
-
-
-
-
 observed_targets = readRDS("tennis_project/execution_error/execution_error.rds") %>% 
   filter(server_name == "N.DJOKOVIC") %>% 
   select(serve_num, court_side, serve_dir, mu_x, mu_y) %>% 
@@ -105,10 +99,3 @@ ggplot() +
         legend.text = element_text(size = 6),
         legend.background = element_rect(fill = "gray95", color = NA),
         plot.title = element_text(hjust = 0.5))
-
-
-
-
-
-
-
