@@ -3,12 +3,6 @@
 library(tidyverse)
 library(ggthemes)
 
-# Vector of player names
-players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
-             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
-
 # Load execution error model once and summarise posterior means for all players
 mu_means_all <- readRDS("tennis_project/execution_error/execution_error.rds") |>
   group_by(server_name, serve_num, court_side, serve_dir) |>
@@ -19,8 +13,7 @@ optimums_all <- readRDS("tennis_project/optimums/optimums.rds") |>
   mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
   group_by(server_name, serve_num, court_side, serve_dir) |>
   slice_max(ev_hat) |>
-  ungroup() |>
-  rename(player = server_name)
+  ungroup()
 
 bias_df <- mu_means_all %>%
   left_join(
@@ -29,7 +22,7 @@ bias_df <- mu_means_all %>%
         x_opt = x_serve_bounce,
         y_opt = y_serve_bounce
       ),
-    by = c("player", "serve_num", "court_side", "serve_dir")
+    by = c("server_name", "serve_num", "court_side", "serve_dir")
   ) %>%
   mutate(
     diff_x = mu_x - x_opt,
@@ -127,8 +120,8 @@ plot_bias <- function(court_side, player_group) {
     geom_vline(xintercept = 0, linetype = "dashed", color = "gray55") +
     geom_point(
       data = bias_df %>% filter(court_side == !!court_side,
-                                player %in% player_group),
-      aes(x = diff_x, y = diff_y, shape = factor(player)),
+                                server_name %in% player_group),
+      aes(x = diff_x, y = diff_y, shape = factor(server_name)),
       size = 2, alpha = 0.7
     ) +
     facet_grid(spot ~ serve_num) +

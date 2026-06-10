@@ -54,3 +54,61 @@ illustrate_contours = function(contours) {
 contours = readRDS("tennis_project/optimums/contours.rds")
 
 illustrate_contours(contours)
+
+
+
+
+
+
+
+
+
+observed_targets = readRDS("tennis_project/execution_error/execution_error.rds") %>% 
+  filter(server_name == "N.DJOKOVIC") %>% 
+  select(serve_num, court_side, serve_dir, mu_x, mu_y) %>% 
+  rename(x_serve_bounce = mu_x, y_serve_bounce = mu_y)
+
+optimal_targets = readRDS("tennis_project/optimums/contours.rds") %>% 
+  select(x_serve_bounce, y_serve_bounce, serve_num, court_side, serve_dir)
+
+ggplot() +
+  geom_halfcourt() +
+  geom_density_2d(
+    data = observed_targets,
+    aes(x = x_serve_bounce, y = y_serve_bounce, color = serve_dir),
+    contour_var = "ndensity",
+    breaks = c(0.05)
+  ) +
+  geom_density_2d_filled(
+    data = observed_targets, 
+    aes(x = x_serve_bounce, y = y_serve_bounce, fill = serve_dir),
+    contour_var = "ndensity", # normalized density 0-1
+    breaks = c(0.05, 1),
+    alpha = 0.2) +
+  geom_density_2d(
+    data = optimal_targets,
+    aes(x = x_serve_bounce, y = y_serve_bounce, color = serve_dir),
+    contour_var = "ndensity",
+    breaks = c(0.05)
+  ) +
+  facet_grid(court_side ~ serve_num, switch = "y") +
+  scale_fill_colorblind() +
+  scale_color_colorblind() +
+  labs(x = "", y = "", title = "N.DJOKOVIC") +
+  coord_equal() +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom",
+        strip.text.y.left = element_text(angle = 0),
+        legend.title = element_text(size = 6, face = "bold"), 
+        legend.text = element_text(size = 6),
+        legend.background = element_rect(fill = "gray95", color = NA),
+        plot.title = element_text(hjust = 0.5))
+
+
+
+
+
+
+

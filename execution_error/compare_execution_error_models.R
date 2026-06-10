@@ -65,3 +65,43 @@ plot_mu <- function(df) {
 
 plot_mu(mu_old)
 plot_mu(mu_new)
+
+
+
+
+
+
+
+
+# censoring bounds
+exec_err_fit = readRDS("tennis_project/execution_error/execution_error.rds")
+
+exec_err_post_mean <- exec_err_fit %>%
+  group_by(server_name, serve_num, court_side, serve_dir) %>%
+  summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
+
+ggplot() + 
+  geom_halfcourt() +
+  geom_vline(data = exec_err_post_mean,
+             aes(xintercept = t)) +
+  facet_grid(serve_num ~ court_side)
+
+hist(exec_err_post_mean$t)
+
+
+
+
+# tau (bad)
+tau_means_old <- map_dfr(old_files, function(f) {
+  player <- tools::file_path_sans_ext(basename(f))
+  readRDS(f) |>
+    group_by(serve_num, court_side, serve_dir) |>
+    summarise(tau_x = mean(tau_x), tau_y = mean(tau_y), .groups = "drop") |>
+    mutate(server_name = player)
+}) |>
+  mutate(model = "independent")
+
+hist(tau_means_old$tau_x)
+hist(tau_means_old$tau_y)
+
+
