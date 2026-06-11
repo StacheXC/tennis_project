@@ -4,9 +4,9 @@ library(ggthemes)
 
 source("tennis_project/utils.R")
 
-plot_posterior_mu = function(server_name, exec_err_fit) {
+plot_posterior_mu = function(server_name) {
   
-  mu_df <- exec_err_fit %>%
+  mu_df <- readRDS("tennis_project/execution_error/execution_error.rds") %>%
     filter(server_name == !!server_name) %>% 
     select(draw, serve_num, court_side, serve_dir, mu_x, mu_y) %>%
     mutate(
@@ -55,6 +55,4 @@ plot_posterior_mu = function(server_name, exec_err_fit) {
 
 server_name = "N.DJOKOVIC"
 
-exec_err_fit = readRDS("tennis_project/execution_error/execution_error.rds")
-
-plot_posterior_mu(server_name, exec_err_fit)
+plot_posterior_mu(server_name)

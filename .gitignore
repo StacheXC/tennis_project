@@ -10,5 +10,7 @@
 .DS_Store
 
 # Large model files
+data/pbp_df.rds
 execution_error/execution_error.rds
+reward_surface/reward_surface.rds
 optimums/optimums.rds

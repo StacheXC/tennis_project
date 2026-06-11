@@ -3,9 +3,9 @@ library(tidyverse)
 
 source("tennis_project/utils.R")
 
-illustrate_data = function(server_name, pbp_df) {
+illustrate_data = function(server_name) {
   
-  pbp_df = pbp_df %>% 
+  pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
     filter(
       server_name == !!server_name,
       str_detect(match_id, "australian"),
@@ -50,6 +50,4 @@ illustrate_data = function(server_name, pbp_df) {
 
 server_name = "N.DJOKOVIC"
 
-pbp_df = readRDS("tennis_project/data/pbp_df.rds")
-
-illustrate_data(server_name, pbp_df)
+illustrate_data(server_name)

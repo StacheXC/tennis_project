@@ -6,9 +6,9 @@ library(ggthemes)
 
 source("tennis_project/utils.R")
 
-illustrate_execution_error = function(server_name, pbp_df, exec_err_fit) {
+illustrate_execution_error = function(server_name) {
   
-  pbp_df = pbp_df %>%
+  pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
     filter(
       server_name == !!server_name,
       str_detect(match_id, "australian"),
@@ -34,7 +34,7 @@ illustrate_execution_error = function(server_name, pbp_df, exec_err_fit) {
       )
     )
   
-  exec_err_post_mean <- exec_err_fit %>%
+  exec_err_post_mean <- readRDS("tennis_project/execution_error/execution_error.rds") %>%
     filter(server_name == !!server_name) %>% 
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
@@ -130,8 +130,4 @@ illustrate_execution_error = function(server_name, pbp_df, exec_err_fit) {
 
 server_name = "N.DJOKOVIC"
 
-pbp_df = readRDS("tennis_project/data/pbp_df.rds")
-
-exec_err_fit = readRDS("tennis_project/execution_error/execution_error.rds")
-
-illustrate_execution_error(server_name, pbp_df, exec_err_fit)
+illustrate_execution_error(server_name)
