@@ -111,11 +111,17 @@ optimums_all <- readRDS("tennis_project/optimums/optimums.rds") |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 
+ggplot() + 
+  geom_halfcourt() +
+  geom_point(data = optimums_all,
+             aes(x_opt, y_opt, color = serve_dir)) +
+  facet_grid(court_side ~ serve_num)
+
 # Euclidean distance between posterior mean aim and optimal aim
 distance_df <- posterior_means |>
   left_join(optimums_all, by = c("server_name", "serve_num", "court_side", "serve_dir")) |>
-  mutate(distance = sqrt((mu_x - x_opt)^2 + (mu_y - y_opt)^2)) |>
-  select(server_name, serve_num, court_side, serve_dir, distance)
+  mutate(dist_from_opt = sqrt((mu_x - x_opt)^2 + (mu_y - y_opt)^2)) |>
+  select(server_name, serve_num, court_side, serve_dir, dist_from_opt)
 
 # Build binomial regression data
 reg_df <- pbp_df |>
@@ -131,9 +137,6 @@ reg_df <- pbp_df |>
             by = c("server_name", "serve_num", "court_side",
                    "serve_dir_hat" = "serve_dir"))
 
-reg_df <- reg_df %>%
-  rename(dist_from_opt = distance)
-
 # Fit logistic regression
 fit <- glm(
   cbind(wins, n - wins) ~ server_name + returner_name + region_hat + serve_num + dist_from_opt +
@@ -142,7 +145,7 @@ fit <- glm(
   data   = reg_df
 )
 
-summary(fit)
+summary(fit)$coef %>% View()
 
 
 # Test total effect of dist_from_opt < 0 for each region x serve_num combination
@@ -173,7 +176,7 @@ L["DeuceCourt_Wide_s2", "region_hatDeuceCourt_Wide:dist_from_opt"] <- 1
 L[1:4, "serve_num:dist_from_opt"] <- 1
 L[5:8, "serve_num:dist_from_opt"] <- 2
 
-hypotheses <- glht(fit, linfct = L, alternative = "less",
+hypotheses <- glht(fit, linfct = L, alternative = "two.sided",
                    coef. = function(x) coef(x)[keep],
                    vcov. = function(x) vcov(x)[keep, keep])
 summary(hypotheses)
