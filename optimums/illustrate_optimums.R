@@ -3,9 +3,9 @@ library(tidyverse)
 
 source("tennis_project/utils.R")
 
-illustrate_optimums = function(server_name, ev_df) {
+illustrate_optimums = function(server_name) {
   
-  ev_df = ev_df |>
+  ev_df = readRDS("tennis_project/optimums/optimums.rds") |>
     filter(server_name == !!server_name) %>% 
     mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T"),
            court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
@@ -46,6 +46,4 @@ illustrate_optimums = function(server_name, ev_df) {
 
 server_name = "N.DJOKOVIC"
 
-ev_df = readRDS("tennis_project/optimums/optimums.rds")
-
-illustrate_optimums(server_name, ev_df)
+illustrate_optimums(server_name)

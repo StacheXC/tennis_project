@@ -3,9 +3,9 @@ library(tidyverse)
 
 source("tennis_project/utils.R")
 
-illustrate_reward_surface = function(server_name, value_all) {
+illustrate_reward_surface = function(server_name) {
   
-  value_all = value_all %>% 
+  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
     filter(
       server_name == !!server_name,
       x_serve_bounce > 3
@@ -49,6 +49,4 @@ illustrate_reward_surface = function(server_name, value_all) {
 
 server_name = "N.DJOKOVIC"
 
-value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
-
-illustrate_reward_surface(server_name, value_all)
+illustrate_reward_surface(server_name)

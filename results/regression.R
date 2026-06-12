@@ -8,7 +8,10 @@ source("tennis_project/utils.R")
 # Load pbp data
 pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
   filter(
+    !is.na(server_name),
+    !is.na(returner_name),
     str_detect(match_id, "australian"),
+    x_serve_bounce > 3 | error_type == "Net Error",
     x_serve_bounce < 3 | error_type != "Net Error" | is.na(error_type),
     x_serve_bounce < 9,
     abs(y_serve_bounce) < 5.48,
@@ -32,7 +35,7 @@ pbp_df <- pbp_df |>
   group_by(server_name, court_side, serve_num) |>
   group_modify(function(data, keys) {
 
-    # Drop rows with no matched parameters (players outside the 17)
+    # Drop rows with no matched parameters
     if (any(is.na(data$mu_x_Wide))) return(data |> mutate(serve_dir = NA_character_))
 
     z <- as.matrix(data[, c("x_serve_bounce", "y_serve_bounce")])
@@ -111,11 +114,17 @@ optimums_all <- readRDS("tennis_project/optimums/optimums.rds") |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 
-ggplot() + 
-  geom_halfcourt() +
-  geom_point(data = optimums_all,
-             aes(x_opt, y_opt, color = serve_dir)) +
-  facet_grid(court_side ~ serve_num)
+# ggplot() + 
+#   geom_halfcourt() +
+#   geom_point(data = posterior_means,
+#              aes(mu_x, mu_y, color = serve_dir)) +
+#   facet_grid(court_side ~ serve_num)
+# 
+# ggplot() + 
+#   geom_halfcourt() +
+#   geom_point(data = optimums_all,
+#              aes(x_opt, y_opt, color = serve_dir)) +
+#   facet_grid(court_side ~ serve_num)
 
 # Euclidean distance between posterior mean aim and optimal aim
 distance_df <- posterior_means |>
@@ -125,7 +134,13 @@ distance_df <- posterior_means |>
 
 # Build binomial regression data
 reg_df <- pbp_df |>
-  mutate(point = point_winner_id == server_id) |>
+  mutate(
+    point = case_when(
+      point_winner_id == server_id ~ TRUE,
+      point_winner_id != server_id ~ FALSE,
+      is.na(point_winner_id) ~ FALSE
+    )
+  ) |>
   group_by(server_name, returner_name, serve_num, court_side, serve_dir_hat) |>
   summarise(
     n    = n(),
@@ -149,7 +164,6 @@ summary(fit)$coef %>% View()
 
 
 # Test total effect of dist_from_opt < 0 for each region x serve_num combination
-library(multcomp)
 
 # Strip aliased (NA) coefficients — these are always player dummies, never
 # dist_from_opt terms, so the corresponding L columns are zero and safe to drop
@@ -176,7 +190,7 @@ L["DeuceCourt_Wide_s2", "region_hatDeuceCourt_Wide:dist_from_opt"] <- 1
 L[1:4, "serve_num:dist_from_opt"] <- 1
 L[5:8, "serve_num:dist_from_opt"] <- 2
 
-hypotheses <- glht(fit, linfct = L, alternative = "two.sided",
+hypotheses <- multcomp::glht(fit, linfct = L, alternative = "two.sided",
                    coef. = function(x) coef(x)[keep],
                    vcov. = function(x) vcov(x)[keep, keep])
 summary(hypotheses)
