@@ -160,6 +160,13 @@ fit <- glm(
   data   = reg_df
 )
 
+# fit <- glm(
+#   cbind(wins, n - wins) ~ region_hat + serve_num + dist_from_opt +
+#     region_hat:dist_from_opt + serve_num:dist_from_opt,
+#   family = binomial,
+#   data   = reg_df
+# )
+
 summary(fit)$coef %>% View()
 
 

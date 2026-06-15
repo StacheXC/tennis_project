@@ -4,11 +4,7 @@ library(rstan)
   
 pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>% 
   filter(
-    !is.na(x_serve_bounce),
-    !is.na(y_serve_bounce),
     !is.na(server_name),
-    !is.na(serve_num),
-    !is.na(court_side),
     str_detect(match_id, "australian"),
     x_serve_bounce > 3 | error_type == "Net Error",
     x_serve_bounce < 3 | error_type != "Net Error" | is.na(error_type),
