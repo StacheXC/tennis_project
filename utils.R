@@ -97,6 +97,40 @@ interpolate_ad <- function(x, y,
   ))
 }
 
+serve_x   <- -11.887
+slope_mid <- 3.4 / (13.37 - serve_x)
+
+find_local_max_single <- function(data, grid_res = 0.1) {
+  offsets <- list(
+    c(-1, -1), c(-1,  0), c(-1,  1),
+    c( 0, -1),             c( 0,  1),
+    c( 1, -1), c( 1,  0), c( 1,  1)
+  )
+  lookup <- setNames(
+    data$ev_hat,
+    paste(round(data$x_serve_bounce, 1), round(data$y_serve_bounce, 1))
+  )
+  is_max <- rep(TRUE, nrow(data))
+  for (off in offsets) {
+    nbr_key <- paste(round(data$x_serve_bounce + off[1] * grid_res, 1),
+                     round(data$y_serve_bounce + off[2] * grid_res, 1))
+    nbr_ev  <- lookup[nbr_key]
+    nbr_ev[is.na(nbr_ev)] <- -Inf
+    is_max  <- is_max & (data$ev_hat > nbr_ev)
+  }
+  data[is_max, ]
+}
+
+find_local_maxima <- function(ev_df, grid_res = 0.1) {
+  ev_df %>%
+    group_by(server_name, serve_num, court_side) %>%
+    group_modify(function(data, keys) {
+      find_local_max_single(data, grid_res) %>%
+        select(x_serve_bounce, y_serve_bounce, ev_hat)
+    }) %>%
+    ungroup()
+}
+
 # players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
 #              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
 #              "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",

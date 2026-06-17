@@ -19,11 +19,36 @@ pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
     y_serve_bounce < 1 | court_side == "DeuceCourt"
   )
 
-# Load posterior means for all players and pivot wide so each row has
-# both Wide and T parameters for a given (server, court_side, serve_num)
-params_wide <- readRDS("tennis_project/execution_error/execution_error.rds") |>
+# Posterior means per server/serve_num/court_side/serve_dir
+exec_err <- readRDS("tennis_project/execution_error/execution_error.rds") |>
   group_by(server_name, serve_num, court_side, serve_dir) |>
-  summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta), mean), .groups = "drop") |>
+  summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta), mean), .groups = "drop")
+
+posterior_means <- exec_err |>
+  select(server_name, serve_num, court_side, serve_dir, mu_x, mu_y)
+
+ggplot(posterior_means %>%
+         mutate(
+           serve_num  = ifelse(serve_num == 1, "1st Serve", "2nd Serve"),
+           court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
+           court_side = factor(court_side, levels = c("Deuce Court", "Ad Court"))
+         ),
+       aes(x = mu_x, y = mu_y, color = serve_dir)) +
+  geom_halfcourt() +
+  geom_point(alpha = 0.7, size = 1.5) +
+  facet_grid(court_side ~ serve_num, switch = "y") +
+  scale_color_colorblind(name = "Direction") +
+  coord_equal() +
+  labs(x = "", y = "") +
+  theme_minimal() +
+  theme(
+    panel.grid        = element_blank(),
+    axis.text         = element_blank(),
+    legend.position   = "bottom",
+    strip.text.y.left = element_text(angle = 0)
+  )
+
+params_wide <- exec_err |>
   pivot_wider(
     names_from  = serve_dir,
     values_from = c(mu_x, mu_y, tau_x, tau_y, rho, theta)
@@ -61,70 +86,52 @@ pbp_df <- pbp_df |>
   select(-matches("^(mu_x|mu_y|tau_x|tau_y|rho|theta|t)_"))
 
 
-plot_serve_directions <- function(server_name) {
-
-  plot_df <- pbp_df |>
-    filter(server_name == !!server_name) |>
-    mutate(
-      x_serve_bounce = if_else(
-        !is.na(x_serve_bounce) & x_serve_bounce < 3,
-        runif(n(), -.2, 0),
-        x_serve_bounce
-      ),
-      court_side = ifelse(court_side == "DeuceCourt", "Deuce", "Ad"),
-      court_side = factor(court_side, levels = c("Deuce", "Ad")),
-      serve_num  = ifelse(serve_num == 1, "1st Serve", "2nd Serve")
-    )
-
-  ggplot(plot_df, aes(x = x_serve_bounce, y = y_serve_bounce, color = serve_dir_hat)) +
-    geom_point(alpha = 0.6, size = 0.75) +
-    geom_halfcourt() +
-    facet_grid(court_side ~ serve_num, switch = "y") +
-    scale_color_colorblind(name = "Direction") +
-    coord_equal() +
-    labs(x = "", y = "", title = server_name) +
-    theme_minimal() +
-    theme(panel.grid = element_blank(),
-          axis.text = element_blank(),
-          legend.position = "bottom",
-          strip.text.y.left = element_text(angle = 0),
-          legend.title = element_text(size = 6, face = "bold"),
-          legend.text = element_text(size = 6),
-          legend.background = element_rect(fill = "gray95", color = NA),
-          plot.title = element_text(hjust = 0.5))
-}
-
-plot_serve_directions("N.DJOKOVIC")
-
-
 
 # Regression ---------------------------------------------------------------
 
-# Posterior means per server/serve_num/court_side/serve_dir
-posterior_means <- readRDS("tennis_project/execution_error/execution_error.rds") |>
-  group_by(server_name, serve_num, court_side, serve_dir) |>
-  summarise(mu_x = mean(mu_x), mu_y = mean(mu_y), .groups = "drop")
-
 # Optimal aim points per server/serve_num/court_side/serve_dir
-optimums_all <- readRDS("tennis_project/optimums/optimums.rds") |>
-  mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
+optimums_all <- find_local_maxima(
+  readRDS("tennis_project/optimums/optimums.rds") |>
+    filter(
+      x_serve_bounce <= 6.4,
+      (court_side == "DeuceCourt" & y_serve_bounce >= 0     & y_serve_bounce <=  4.115) |
+      (court_side == "AdCourt"    & y_serve_bounce >= -4.115 & y_serve_bounce <= 0)
+    )
+) |>
+  mutate(
+    serve_dir = case_when(
+      court_side == "DeuceCourt" & y_serve_bounce >   slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
+      court_side == "DeuceCourt" & y_serve_bounce <=  slope_mid * (x_serve_bounce - serve_x) ~ "T",
+      court_side == "AdCourt"    & y_serve_bounce <  -slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
+      court_side == "AdCourt"    & y_serve_bounce >= -slope_mid * (x_serve_bounce - serve_x) ~ "T"
+    )
+  ) |>
   group_by(server_name, serve_num, court_side, serve_dir) |>
   slice_max(ev_hat, n = 1) |>
   ungroup() |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 
-# ggplot() + 
-#   geom_halfcourt() +
-#   geom_point(data = posterior_means,
-#              aes(mu_x, mu_y, color = serve_dir)) +
-#   facet_grid(court_side ~ serve_num)
-# 
-# ggplot() + 
-#   geom_halfcourt() +
-#   geom_point(data = optimums_all,
-#              aes(x_opt, y_opt, color = serve_dir)) +
-#   facet_grid(court_side ~ serve_num)
+ggplot(optimums_all %>%
+         mutate(
+           serve_num  = ifelse(serve_num == 1, "1st Serve", "2nd Serve"),
+           court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
+           court_side = factor(court_side, levels = c("Deuce Court", "Ad Court"))
+         ),
+       aes(x = x_opt, y = y_opt, color = serve_dir)) +
+  geom_halfcourt() +
+  geom_point(alpha = 0.7, size = 1.5) +
+  facet_grid(court_side ~ serve_num, switch = "y") +
+  scale_color_colorblind(name = "Direction") +
+  coord_equal() +
+  labs(x = "", y = "") +
+  theme_minimal() +
+  theme(
+    panel.grid        = element_blank(),
+    axis.text         = element_blank(),
+    legend.position   = "bottom",
+    strip.text.y.left = element_text(angle = 0)
+  )
 
 # Euclidean distance between posterior mean aim and optimal aim
 distance_df <- posterior_means |>
@@ -159,13 +166,6 @@ fit <- glm(
   family = binomial,
   data   = reg_df
 )
-
-# fit <- glm(
-#   cbind(wins, n - wins) ~ region_hat + serve_num + dist_from_opt +
-#     region_hat:dist_from_opt + serve_num:dist_from_opt,
-#   family = binomial,
-#   data   = reg_df
-# )
 
 summary(fit)$coef %>% View()
 

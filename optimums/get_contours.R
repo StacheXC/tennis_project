@@ -3,7 +3,7 @@
 library(tidyverse)
 library(mvtnorm)
 
-source("../utils.R")
+source("tennis_project/utils.R")
 
 get_expected_value <- function(value_func, exec_err_post_mean,
                                fault_value = -1) {
@@ -102,15 +102,15 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 
 get_contours = function(server_name) {
 
-  value_all = readRDS("../reward_surface/reward_surface_new.rds") %>% 
+  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
     filter(server_name == !!server_name)
 
-  exec_err_post_draws <- readRDS("../execution_error/all_players.rds") %>% 
+  exec_err_post_draws <- readRDS("tennis_project/execution_error/execution_error.rds") %>% 
     filter(server_name == !!server_name)
 
   results <- list()
 
-  for (i in 1:100) {
+  for (i in 101:200) {
 
     cat(i, "\n")
 
@@ -155,8 +155,22 @@ get_contours = function(server_name) {
             draw = i
           )
 
-        results[[length(results) + 1]] <- ev_df |>
-          mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
+        y_min <- if (court_side == "DeuceCourt")  0     else -4.115
+        y_max <- if (court_side == "DeuceCourt")  4.115 else  0
+
+        results[[length(results) + 1]] <- find_local_max_single(
+          ev_df |> filter(x_serve_bounce <= 6.4,
+                          y_serve_bounce >= y_min,
+                          y_serve_bounce <= y_max)
+        ) |>
+          mutate(
+            serve_dir = case_when(
+              court_side == "DeuceCourt" & y_serve_bounce >   slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
+              court_side == "DeuceCourt" & y_serve_bounce <=  slope_mid * (x_serve_bounce - serve_x) ~ "T",
+              court_side == "AdCourt"    & y_serve_bounce <  -slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
+              court_side == "AdCourt"    & y_serve_bounce >= -slope_mid * (x_serve_bounce - serve_x) ~ "T"
+            )
+          ) |>
           group_by(serve_num, court_side, serve_dir, draw) |>
           slice_max(ev_hat, n = 1) |>
           ungroup()
@@ -167,32 +181,8 @@ get_contours = function(server_name) {
   }
 
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, paste0("../optimums/contours", server_name, ".rds"))
+  saveRDS(combined_df, "tennis_project/optimums/contours_2.rds")
 
 }
 
-# get_contours("N.DJOKOVIC")
-
-ev_df = readRDS("../optimums/optimums.rds")
-
-optimal_targets = ev_df %>% 
-  mutate(
-    serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T"),
-    court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
-    court_side = factor(court_side, levels = c("Deuce Court", "Ad Court")),
-    serve_num = ifelse(serve_num == 1, "1st Serve", "2nd Serve")
-  ) %>% 
-  group_by(server_name, serve_num, court_side, serve_dir) |>
-  slice_max(ev_hat)
-
-players <- optimal_targets %>% 
-  filter(abs(y_serve_bounce) == 2) %>% 
-  pull(server_name) %>% 
-  unique()
-
-print(players)
-
-for (player in players) {
-  get_contours(player)
-}
-
+get_contours("N.DJOKOVIC")
