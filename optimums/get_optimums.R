@@ -170,3 +170,25 @@ optimums_all <- map_dfr(players, function(player) {
 })
 
 saveRDS(optimums_all, "tennis_project/optimums/optimums.rds")
+
+optimal_targets <- find_local_maxima(
+  optimums_all |>
+    filter(
+      x_serve_bounce <= 6.4,
+      (court_side == "DeuceCourt" & y_serve_bounce >= 0     & y_serve_bounce <=  4.115) |
+      (court_side == "AdCourt"    & y_serve_bounce >= -4.115 & y_serve_bounce <= 0)
+    )
+) |>
+  mutate(
+    serve_dir = case_when(
+      court_side == "DeuceCourt" & y_serve_bounce >   slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
+      court_side == "DeuceCourt" & y_serve_bounce <=  slope_mid * (x_serve_bounce - serve_x) ~ "T",
+      court_side == "AdCourt"    & y_serve_bounce <  -slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
+      court_side == "AdCourt"    & y_serve_bounce >= -slope_mid * (x_serve_bounce - serve_x) ~ "T"
+    )
+  ) |>
+  group_by(server_name, serve_num, court_side, serve_dir) |>
+  slice_max(ev_hat, n = 1) |>
+  ungroup()
+
+saveRDS(optimal_targets, "tennis_project/optimums/optimal_targets.rds")
