@@ -2,6 +2,7 @@
 library(tidyverse)
 library(mvtnorm)
 library(ggthemes)
+library(glmnet)
 
 source("tennis_project/utils.R")
 
@@ -90,25 +91,7 @@ pbp_df <- pbp_df |>
 # Regression ---------------------------------------------------------------
 
 # Optimal aim points per server/serve_num/court_side/serve_dir
-optimums_all <- find_local_maxima(
-  readRDS("tennis_project/optimums/optimums.rds") |>
-    filter(
-      x_serve_bounce <= 6.4,
-      (court_side == "DeuceCourt" & y_serve_bounce >= 0     & y_serve_bounce <=  4.115) |
-      (court_side == "AdCourt"    & y_serve_bounce >= -4.115 & y_serve_bounce <= 0)
-    )
-) |>
-  mutate(
-    serve_dir = case_when(
-      court_side == "DeuceCourt" & y_serve_bounce >   slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-      court_side == "DeuceCourt" & y_serve_bounce <=  slope_mid * (x_serve_bounce - serve_x) ~ "T",
-      court_side == "AdCourt"    & y_serve_bounce <  -slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-      court_side == "AdCourt"    & y_serve_bounce >= -slope_mid * (x_serve_bounce - serve_x) ~ "T"
-    )
-  ) |>
-  group_by(server_name, serve_num, court_side, serve_dir) |>
-  slice_max(ev_hat, n = 1) |>
-  ungroup() |>
+optimums_all <- readRDS("tennis_project/optimums/targets.rds") |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 
@@ -201,3 +184,31 @@ hypotheses <- multcomp::glht(fit, linfct = L, alternative = "two.sided",
                    coef. = function(x) coef(x)[keep],
                    vcov. = function(x) vcov(x)[keep, keep])
 summary(hypotheses)
+
+
+# Lasso -------------------------------------------------------------------
+
+reg_df_complete <- reg_df |> filter(!is.na(dist_from_opt))
+
+X <- model.matrix(
+  ~ server_name + returner_name + region_hat + serve_num + dist_from_opt +
+    region_hat:dist_from_opt + serve_num:dist_from_opt,
+  data = reg_df_complete
+)
+
+y <- cbind(reg_df_complete$wins, reg_df_complete$n - reg_df_complete$wins)
+
+# Penalize player effects only; leave dist_from_opt terms unpenalized
+penalty <- ifelse(grepl("dist_from_opt", colnames(X)), 0, 1)
+penalty[1] <- 0  # intercept
+
+fit_lasso <- cv.glmnet(
+  X, y,
+  family         = "binomial",
+  alpha          = 1,
+  penalty.factor = penalty
+)
+
+plot(fit_lasso)
+
+coef(fit_lasso, s = "lambda.min")

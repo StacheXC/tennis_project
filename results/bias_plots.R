@@ -3,17 +3,15 @@
 library(tidyverse)
 library(ggthemes)
 
+source("tennis_project/utils.R")
+
 # Load execution error model once and summarise posterior means for all players
 mu_means_all <- readRDS("tennis_project/execution_error/execution_error.rds") |>
   group_by(server_name, serve_num, court_side, serve_dir) |>
   summarise(mu_x = mean(mu_x), mu_y = mean(mu_y), .groups = "drop")
 
-# Load optimums for all players
-optimums_all <- readRDS("tennis_project/optimums/optimums.rds") |>
-  mutate(serve_dir = ifelse(abs(y_serve_bounce) > 2, "Wide", "T")) |>
-  group_by(server_name, serve_num, court_side, serve_dir) |>
-  slice_max(ev_hat) |>
-  ungroup()
+# Load optimal targets
+optimums_all <- readRDS("tennis_project/optimums/targets.rds")
 
 bias_df <- mu_means_all %>%
   left_join(

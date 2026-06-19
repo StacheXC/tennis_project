@@ -8,25 +8,8 @@ illustrate_optimums <- function(server_name) {
   ev_df <- readRDS("tennis_project/optimums/optimums.rds") |>
     filter(server_name == !!server_name)
 
-  local_maxima <- find_local_maxima(ev_df %>%
-    filter(x_serve_bounce <= 6.4, abs(y_serve_bounce) <= 4.115)) %>%
-    mutate(
-      serve_dir = case_when(
-        court_side == "DeuceCourt" &
-          y_serve_bounce >  slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-        court_side == "DeuceCourt" &
-          y_serve_bounce <= slope_mid * (x_serve_bounce - serve_x) ~ "T",
-        court_side == "AdCourt" &
-          y_serve_bounce < -slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-        court_side == "AdCourt" &
-          y_serve_bounce >= -slope_mid * (x_serve_bounce - serve_x) ~ "T"
-      )
-    )
-
-  optimal_local_maxima <- local_maxima %>%
-    group_by(serve_num, court_side, serve_dir) %>%
-    slice_max(ev_hat, n = 1) %>%
-    ungroup()
+  optimal_local_maxima <- readRDS("tennis_project/optimums/targets.rds") %>% 
+    filter(server_name == !!server_name)
 
   ev_plot <- ev_df %>%
     mutate(

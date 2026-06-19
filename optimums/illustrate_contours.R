@@ -6,10 +6,7 @@ source("tennis_project/utils.R")
 
 illustrate_contours = function(server_name) {
   
-  # contours = readRDS(paste0("tennis_project/optimums/contours/", server_name, ".rds"))
-  contours = readRDS("tennis_project/optimums/contours_new.rds")
-    
-  contours = contours %>% 
+  contours <- readRDS("tennis_project/optimums/contours_new.rds") %>%
     mutate(
       spot = case_when(
         court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
@@ -17,12 +14,27 @@ illustrate_contours = function(server_name) {
         court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
         court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
       ),
-      spot = factor(spot, levels = c("deuce wide", "deuce tee", "ad tee", "ad wide")),
-      serve_num = ifelse(serve_num == 1, "1st Serve", "2nd Serve"),
+      spot       = factor(spot, levels = c("deuce wide", "deuce tee", "ad tee", "ad wide")),
+      serve_num  = ifelse(serve_num == 1, "1st Serve", "2nd Serve"),
       court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
       court_side = factor(court_side, levels = c("Deuce Court", "Ad Court"))
     )
-  
+
+  optimal_targets <- readRDS("tennis_project/optimums/targets.rds") %>%
+    filter(server_name == !!server_name) %>%
+    mutate(
+      spot = case_when(
+        court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
+        court_side == "DeuceCourt" & serve_dir == "T"    ~ "deuce tee",
+        court_side == "AdCourt"    & serve_dir == "T"    ~ "ad tee",
+        court_side == "AdCourt"    & serve_dir == "Wide" ~ "ad wide"
+      ),
+      spot       = factor(spot, levels = c("deuce wide", "deuce tee", "ad tee", "ad wide")),
+      serve_num  = ifelse(serve_num == 1, "1st Serve", "2nd Serve"),
+      court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
+      court_side = factor(court_side, levels = c("Deuce Court", "Ad Court"))
+    )
+
   ggplot() +
     geom_halfcourt() +
     geom_density_2d(
@@ -37,6 +49,11 @@ illustrate_contours = function(server_name) {
       contour_var = "ndensity",
       breaks = c(0.05, 1),
       alpha = 0.2
+    ) +
+    geom_point(
+      data = optimal_targets,
+      aes(x = x_serve_bounce, y = y_serve_bounce, color = spot),
+      shape = 4, size = 3, stroke = 1.5
     ) +
     facet_grid(court_side ~ serve_num, switch = "y") +
     scale_fill_colorblind() +

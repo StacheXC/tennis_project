@@ -100,13 +100,13 @@ get_expected_value <- function(value_func, exec_err_post_mean,
   
 }
 
-get_optimums = function(server_name, exec_err_post_mean, value_all) {
+get_optimums = function(server_name, exec_err_fit, value_all) {
 
   value_all = value_all %>% 
     filter(server_name == !!server_name)
 
   # Get posterior distribution data
-  exec_err_post_mean <- exec_err_post_mean %>%
+  exec_err_post_mean <- exec_err_fit %>%
     filter(server_name == !!server_name) %>% 
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, t), mean), .groups = "drop")
@@ -156,29 +156,35 @@ get_optimums = function(server_name, exec_err_post_mean, value_all) {
 
 }
 
-exec_err_post_mean <- readRDS("tennis_project/execution_error/execution_error.rds")
+exec_err_fit <- readRDS("tennis_project/execution_error/execution_error.rds")
 
 value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
 
-players <- exec_err_post_mean %>%
-  pull(server_name) %>%
-  unique()
+# players <- exec_err_fit %>%
+#   pull(server_name) %>%
+#   unique()
+
+players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
+             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
+             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
+             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
 optimums_all <- map_dfr(players, function(player) {
   cat(player, "\n")
-  get_optimums(player, exec_err_post_mean, value_all)
+  get_optimums(player, exec_err_fit, value_all)
 })
 
 saveRDS(optimums_all, "tennis_project/optimums/optimums.rds")
 
-optimal_targets <- find_local_maxima(
-  optimums_all |>
-    filter(
-      x_serve_bounce <= 6.4,
-      (court_side == "DeuceCourt" & y_serve_bounce >= 0     & y_serve_bounce <=  4.115) |
-      (court_side == "AdCourt"    & y_serve_bounce >= -4.115 & y_serve_bounce <= 0)
-    )
-) |>
+optimal_targets <- optimums_all |>
+  filter(
+    x_serve_bounce <= 6.4,
+    (court_side == "DeuceCourt" & y_serve_bounce >= 0     & y_serve_bounce <=  4.115) |
+    (court_side == "AdCourt"    & y_serve_bounce >= -4.115 & y_serve_bounce <= 0)
+  ) |>
+  group_by(server_name, serve_num, court_side) |>
+  group_modify(~ find_local_max_single(.x) |> select(x_serve_bounce, y_serve_bounce, ev_hat)) |>
+  ungroup() |>
   mutate(
     serve_dir = case_when(
       court_side == "DeuceCourt" & y_serve_bounce >   slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
@@ -191,4 +197,4 @@ optimal_targets <- find_local_maxima(
   slice_max(ev_hat, n = 1) |>
   ungroup()
 
-saveRDS(optimal_targets, "tennis_project/optimums/optimal_targets.rds")
+saveRDS(optimal_targets, "tennis_project/optimums/targets.rds")

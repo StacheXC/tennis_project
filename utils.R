@@ -14,6 +14,7 @@ geom_halfcourt <- function()  {
                color = "gray40")
 }
 
+# currently, court limits are not used
 interpolate_deuce <- function(x, y,
                               mu_W, mu_T,
                               sig_W, sig_T,
@@ -29,9 +30,8 @@ interpolate_deuce <- function(x, y,
   angle_tee    <- atan2(mu_T[2] - server_pos[2], mu_T[1] - server_pos[1])
   
   # 2. Define allowable aiming span (court limits)
-  # I changed this part
-  angle_max <- atan2(court_limit_wide[2] - server_pos[2], court_limit_wide[1] - server_pos[1])
-  angle_min <- atan2(court_limit_tee[2] - server_pos[2], court_limit_tee[1] - server_pos[1])
+  angle_max <- atan2(mu_W[2] - server_pos[2], mu_W[1] - server_pos[1])
+  angle_min <- atan2(mu_T[2] - server_pos[2], mu_T[1] - server_pos[1])
   
   # 3. Clamp angle_target to valid angular range
   angle_target_clamped <- min(max(angle_target, angle_min), angle_max)
@@ -72,8 +72,8 @@ interpolate_ad <- function(x, y,
   angle_tee    <- atan2(mu_T[2] - server_pos[2], mu_T[1] - server_pos[1])
   
   # 2. Define allowable aiming span (court limits)
-  angle_max <- atan2(court_limit_tee[2] - server_pos[2], court_limit_tee[1] - server_pos[1])
-  angle_min <- atan2(court_limit_wide[2] - server_pos[2], court_limit_wide[1] - server_pos[1])
+  angle_max <- atan2(mu_T[2] - server_pos[2], mu_T[1] - server_pos[1])
+  angle_min <- atan2(mu_W[2] - server_pos[2], mu_W[1] - server_pos[1])
   
   # 3. Clamp angle_target to valid angular range
   angle_target_clamped <- max(min(angle_target, angle_max), angle_min)
@@ -97,9 +97,6 @@ interpolate_ad <- function(x, y,
   ))
 }
 
-serve_x   <- -11.887
-slope_mid <- 3.4 / (13.37 - serve_x)
-
 find_local_max_single <- function(data, grid_res = 0.1) {
   offsets <- list(
     c(-1, -1), c(-1,  0), c(-1,  1),
@@ -119,16 +116,6 @@ find_local_max_single <- function(data, grid_res = 0.1) {
     is_max  <- is_max & (data$ev_hat > nbr_ev)
   }
   data[is_max, ]
-}
-
-find_local_maxima <- function(ev_df, grid_res = 0.1) {
-  ev_df %>%
-    group_by(server_name, serve_num, court_side) %>%
-    group_modify(function(data, keys) {
-      find_local_max_single(data, grid_res) %>%
-        select(x_serve_bounce, y_serve_bounce, ev_hat)
-    }) %>%
-    ungroup()
 }
 
 # players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
