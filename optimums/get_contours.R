@@ -110,7 +110,7 @@ get_contours = function(server_name) {
 
   results <- list()
 
-  for (i in 1:1000) {
+  for (i in 1:200) {
 
     cat(i, "\n")
 
@@ -164,11 +164,8 @@ get_contours = function(server_name) {
                           y_serve_bounce <= y_max)
         ) |>
           mutate(
-            serve_dir = case_when(
-              court_side == "DeuceCourt" & y_serve_bounce >   slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-              court_side == "DeuceCourt" & y_serve_bounce <=  slope_mid * (x_serve_bounce - serve_x) ~ "T",
-              court_side == "AdCourt"    & y_serve_bounce <  -slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-              court_side == "AdCourt"    & y_serve_bounce >= -slope_mid * (x_serve_bounce - serve_x) ~ "T"
+            serve_dir = ifelse(
+              abs(y_serve_bounce) > 2, "Wide", "T"
             )
           ) |>
           group_by(serve_num, court_side, serve_dir, draw) |>
@@ -181,7 +178,7 @@ get_contours = function(server_name) {
   }
 
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, "tennis_project/optimums/contours_new.rds")
+  saveRDS(combined_df, "tennis_project/optimums/contours.rds")
 
 }
 
