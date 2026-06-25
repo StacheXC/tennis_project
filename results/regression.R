@@ -91,7 +91,7 @@ pbp_df <- pbp_df |>
 # Regression ---------------------------------------------------------------
 
 # Optimal aim points per server/serve_num/court_side/serve_dir
-optimums_all <- readRDS("tennis_project/optimums/targets_new.rds") |>
+optimums_all <- readRDS("tennis_project/optimums/targets.rds") |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 

@@ -6,7 +6,7 @@ source("tennis_project/utils.R")
 
 illustrate_contours = function(server_name) {
   
-  contours <- readRDS("tennis_project/optimums/contours_new.rds") %>%
+  contours <- readRDS("tennis_project/optimums/contours.rds") %>%
     mutate(
       spot = case_when(
         court_side == "DeuceCourt" & serve_dir == "Wide" ~ "deuce wide",
