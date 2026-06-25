@@ -15,6 +15,7 @@ geom_halfcourt <- function()  {
 }
 
 # currently, court limits are not used
+# in the orgiginal, t_interp used w2 instead of w
 interpolate_deuce <- function(x, y,
                               mu_W, mu_T,
                               sig_W, sig_T,
@@ -45,7 +46,7 @@ interpolate_deuce <- function(x, y,
   # 5. Linearly interpolate all parameters
   sig_interp  <- (1 - w) * sig_T  + w * sig_W
   corr_interp <- (1 - w) * corr_T + w * corr_W
-  t_interp    <- (1 - w2) * t_T    + w2 * t_W
+  t_interp    <- (1 - w) * t_T    + w * t_W
   
   # 6. Clamp correlation to [-.9, .9]
   corr_interp <- max(min(corr_interp, .9), -.9)
@@ -85,7 +86,7 @@ interpolate_ad <- function(x, y,
   # 6. Interpolate parameters
   sig_interp  <- (1 - w) * sig_T  + w * sig_W
   corr_interp <- (1 - w) * corr_T + w * corr_W
-  t_interp    <- (1 - w2) * t_T    + w2 * t_W
+  t_interp    <- (1 - w) * t_T    + w * t_W
   
   # 7. Clamp correlation to safe range
   corr_interp <- max(min(corr_interp, 0.9), -0.9)

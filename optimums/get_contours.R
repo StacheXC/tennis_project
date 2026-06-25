@@ -110,7 +110,7 @@ get_contours = function(server_name) {
 
   results <- list()
 
-  for (i in 1:200) {
+  for (i in 1:50) {
 
     cat(i, "\n")
 
@@ -178,7 +178,7 @@ get_contours = function(server_name) {
   }
 
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, "tennis_project/optimums/contours.rds")
+  saveRDS(combined_df, "tennis_project/optimums/contours_new.rds")
 
 }
 

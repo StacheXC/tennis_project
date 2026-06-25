@@ -160,21 +160,21 @@ exec_err_fit <- readRDS("tennis_project/execution_error/execution_error.rds")
 
 value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
 
-# players <- exec_err_fit %>%
-#   pull(server_name) %>%
-#   unique()
+players <- exec_err_fit %>%
+  pull(server_name) %>%
+  unique()
 
-players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
-             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
+# players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
+#              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
+#              "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
+#              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
-optimums_all <- map_dfr(players, function(player) {
+optimums_all <- map_dfr(players[201:312], function(player) {
   cat(player, "\n")
   get_optimums(player, exec_err_fit, value_all)
 })
 
-saveRDS(optimums_all, "tennis_project/optimums/optimums.rds")
+saveRDS(optimums_all, "tennis_project/optimums/optimums_new_3.rds")
 
 optimal_targets <- optimums_all |>
   filter(
@@ -186,15 +186,12 @@ optimal_targets <- optimums_all |>
   group_modify(~ find_local_max_single(.x) |> select(x_serve_bounce, y_serve_bounce, ev_hat)) |>
   ungroup() |>
   mutate(
-    serve_dir = case_when(
-      court_side == "DeuceCourt" & y_serve_bounce >   slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-      court_side == "DeuceCourt" & y_serve_bounce <=  slope_mid * (x_serve_bounce - serve_x) ~ "T",
-      court_side == "AdCourt"    & y_serve_bounce <  -slope_mid * (x_serve_bounce - serve_x) ~ "Wide",
-      court_side == "AdCourt"    & y_serve_bounce >= -slope_mid * (x_serve_bounce - serve_x) ~ "T"
+    serve_dir = ifelse(
+      abs(y_serve_bounce) > 2, "Wide", "T"
     )
   ) |>
   group_by(server_name, serve_num, court_side, serve_dir) |>
   slice_max(ev_hat, n = 1) |>
   ungroup()
 
-saveRDS(optimal_targets, "tennis_project/optimums/targets.rds")
+saveRDS(optimal_targets, "tennis_project/optimums/targets_new.rds")

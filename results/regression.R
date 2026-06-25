@@ -91,7 +91,7 @@ pbp_df <- pbp_df |>
 # Regression ---------------------------------------------------------------
 
 # Optimal aim points per server/serve_num/court_side/serve_dir
-optimums_all <- readRDS("tennis_project/optimums/targets.rds") |>
+optimums_all <- readRDS("tennis_project/optimums/targets_new.rds") |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 
@@ -122,13 +122,20 @@ distance_df <- posterior_means |>
   mutate(dist_from_opt = sqrt((mu_x - x_opt)^2 + (mu_y - y_opt)^2)) |>
   select(server_name, serve_num, court_side, serve_dir, dist_from_opt)
 
+fault_value = pbp_df %>%
+  filter(serve_num == 2) %>%
+  group_by(server_name) %>%
+  summarize(fault_value = mean(point_winner_id == server_id))
+
 # Build binomial regression data
 reg_df <- pbp_df |>
+  left_join(fault_value) %>%
+  # filter(point_end_type != "Faulty Serve") %>% 
   mutate(
     point = case_when(
-      point_winner_id == server_id ~ TRUE,
-      point_winner_id != server_id ~ FALSE,
-      is.na(point_winner_id) ~ FALSE
+      point_end_type == "Faulty Serve" ~ fault_value,
+      point_winner_id == server_id ~ 1,
+      point_winner_id != server_id ~ 0
     )
   ) |>
   group_by(server_name, returner_name, serve_num, court_side, serve_dir_hat) |>
@@ -146,7 +153,7 @@ reg_df <- pbp_df |>
 fit <- glm(
   cbind(wins, n - wins) ~ server_name + returner_name + region_hat + serve_num + dist_from_opt +
     region_hat:dist_from_opt + serve_num:dist_from_opt,
-  family = binomial,
+  family = quasibinomial,
   data   = reg_df
 )
 
@@ -180,7 +187,7 @@ L["DeuceCourt_Wide_s2", "region_hatDeuceCourt_Wide:dist_from_opt"] <- 1
 L[1:4, "serve_num:dist_from_opt"] <- 1
 L[5:8, "serve_num:dist_from_opt"] <- 2
 
-hypotheses <- multcomp::glht(fit, linfct = L, alternative = "two.sided",
+hypotheses <- multcomp::glht(fit, linfct = L, alternative = "less",
                    coef. = function(x) coef(x)[keep],
                    vcov. = function(x) vcov(x)[keep, keep])
 summary(hypotheses)
@@ -191,8 +198,7 @@ summary(hypotheses)
 reg_df_complete <- reg_df |> filter(!is.na(dist_from_opt))
 
 X <- model.matrix(
-  ~ server_name + returner_name + region_hat + serve_num + dist_from_opt +
-    region_hat:dist_from_opt + serve_num:dist_from_opt,
+  ~ server_name + returner_name + region_hat + serve_num + dist_from_opt,
   data = reg_df_complete
 )
 
@@ -211,4 +217,4 @@ fit_lasso <- cv.glmnet(
 
 plot(fit_lasso)
 
-coef(fit_lasso, s = "lambda.min")
+coef(fit_lasso, s = "lambda.1se")
