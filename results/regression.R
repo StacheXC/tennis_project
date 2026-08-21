@@ -21,7 +21,7 @@ pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
   )
 
 # Posterior means per server/serve_num/court_side/serve_dir
-exec_err <- readRDS("tennis_project/execution_error/execution_error.rds") |>
+exec_err <- readRDS("tennis_project/execution_error/body/execution_error_body.rds")$draws |>
   group_by(server_name, serve_num, court_side, serve_dir) |>
   summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta), mean), .groups = "drop")
 
@@ -91,7 +91,7 @@ pbp_df <- pbp_df |>
 # Regression ---------------------------------------------------------------
 
 # Optimal aim points per server/serve_num/court_side/serve_dir
-optimums_all <- readRDS("tennis_project/optimums/targets.rds") |>
+optimums_all <- readRDS("tennis_project/optimums/gender/targets_gender.rds") |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 

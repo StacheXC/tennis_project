@@ -122,6 +122,18 @@ pbp_df <- map_dfr(match_df$match_id, function(match_id) {
           hit_z = z
         )
       
+      traj_return <- traj %>%
+        filter(
+          strike_index == 2,
+          position == "hit"
+        ) %>%
+        select(
+          point_ID,
+          return_x = x,
+          return_y = y,
+          return_z = z
+        )
+      
       
       # overwrite pbp coordinates ---------------------------------------
       
@@ -136,6 +148,11 @@ pbp_df <- map_dfr(match_df$match_id, function(match_id) {
           traj_hit,
           by = "point_ID"
         ) %>%
+        
+        left_join(
+          traj_return,
+          by = "point_ID"
+        ) %>% 
         
         mutate(
           
@@ -172,17 +189,29 @@ pbp_df <- map_dfr(match_df$match_id, function(match_id) {
           z_ball_serve_impact = coalesce(
             hit_z,
             z_ball_serve_impact
+          ),
+          
+          serve_return_impact_x = coalesce(
+            return_x,
+            serve_return_impact_x
+          ),
+          
+          serve_return_impact_y = coalesce(
+            return_y,
+            serve_return_impact_y
+          ),
+          
+          serve_return_impact_z = coalesce(
+            return_z,
+            serve_return_impact_z
           )
           
         ) %>%
         
         select(
-          -bounce_x,
-          -bounce_y,
-          -bounce_z,
-          -hit_x,
-          -hit_y,
-          -hit_z
+          -bounce_x, -bounce_y, -bounce_z,
+          -hit_x,    -hit_y,    -hit_z,
+          -return_x, -return_y, -return_z
         )
       
     } else {
@@ -226,6 +255,18 @@ pbp_df <- map_dfr(match_df$match_id, function(match_id) {
         rotate,
         -y_ball_serve_impact,
         y_ball_serve_impact
+      ),
+      
+      serve_return_impact_x = ifelse(
+        rotate,
+        -serve_return_impact_x,
+        serve_return_impact_x
+      ),
+      
+      serve_return_impact_y = ifelse(
+        rotate,
+        -serve_return_impact_y,
+        serve_return_impact_y
       )
     )
   

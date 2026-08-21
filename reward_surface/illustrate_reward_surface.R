@@ -11,8 +11,8 @@ illustrate_reward_surface = function(server_name) {
       x_serve_bounce > 3
     ) %>% 
     mutate(
-      court_side = ifelse(court_side == "DeuceCourt", "Deuce Court", "Ad Court"),
-      court_side = factor(court_side, levels = c("Deuce Court", "Ad Court")),
+      court_side = ifelse(court_side == "DeuceCourt", "Deuce\nCourt", "Ad\nCourt"),
+      court_side = factor(court_side, levels = c("Deuce\nCourt", "Ad\nCourt")),
       serve_num = ifelse(serve_num == 1, "1st Serve", "2nd Serve")
     )
   

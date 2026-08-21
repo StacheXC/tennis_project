@@ -35,6 +35,8 @@ pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
     weights = 1 / ((rally_length + 1) %/% 2)
   )
 
+fit_reward_surface = function(pbp_df) {
+
 player_gamm = gamm4(point ~ s(x_serve_bounce,
                               y_serve_bounce,
                               serve_speed_kph,
@@ -128,4 +130,20 @@ value_all = bind_rows(
   value_du, value_ad
 )
 
-saveRDS(value_all, "tennis_project/reward_surface/reward_surface.rds")
+value_all
+
+}
+
+pbp_df_mens = pbp_df %>% 
+  filter(str_detect(match_id, "atp"))
+
+pbp_df_womens = pbp_df %>% 
+  filter(str_detect(match_id, "wta"))
+
+value_all_mens = fit_reward_surface(pbp_df_mens)
+
+saveRDS(value_all_mens, "tennis_project/reward_surface/reward_surface_mens.rds")
+
+value_all_womens = fit_reward_surface(pbp_df_womens)
+
+saveRDS(value_all_womens, "tennis_project/reward_surface/reward_surface_womens.rds")

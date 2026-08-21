@@ -17,6 +17,8 @@ pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
     court_side = ifelse(court_side == "DeuceCourt", 1, 2)
   )
 
+fit_execution_error = function(pbp_df) {
+
 # Create player index
 player_levels <- sort(unique(pbp_df$server_name))
 N_player      <- length(player_levels)
@@ -70,7 +72,7 @@ stan_data <- list(
   c_ind_court  = c_ind_court
 )
 
-model <- stan_model("tennis_project/execution_error/execution_error.stan")
+model <- stan_model("tennis_project/execution_error/old/execution_error.stan")
 
 fit <- sampling(
   model,
@@ -136,4 +138,10 @@ draws_processed <- draws_processed %>%
   mutate(server_name = player_levels[player]) %>%
   select(-player)
 
-saveRDS(draws_processed, "tennis_project/execution_error/execution_error.rds")
+draws_processed
+
+}
+
+draws_pooled = fit_execution_error(pbp_df)
+
+saveRDS(draws_pooled, "tennis_project/execution_error/old/execution_error.rds")

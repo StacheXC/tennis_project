@@ -11,6 +11,11 @@
 
 # Large model files
 data/pbp_df.rds
-execution_error/execution_error.rds
+execution_error/old/execution_error.rds
+execution_error/gender/execution_error_gender.rds
+execution_error/body/execution_error_body.rds
 reward_surface/reward_surface.rds
-optimums/optimums.rds
+reward_surface/reward_surface_gender.rds
+optimums/old/optimums.rds
+optimums/gender/optimums_gender.rds
+optimums/body/optimums_body.rds

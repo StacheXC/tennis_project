@@ -164,17 +164,12 @@ players <- exec_err_fit %>%
   pull(server_name) %>%
   unique()
 
-# players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-#              "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
-#              "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-#              "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
-
-optimums_all <- map_dfr(players[201:312], function(player) {
+optimums_all <- map_dfr(players, function(player) {
   cat(player, "\n")
   get_optimums(player, exec_err_fit, value_all)
 })
 
-saveRDS(optimums_all, "tennis_project/optimums/optimums_new_3.rds")
+saveRDS(optimums_all, "tennis_project/optimums/optimums_test.rds")
 
 optimal_targets <- optimums_all |>
   filter(
@@ -194,4 +189,4 @@ optimal_targets <- optimums_all |>
   slice_max(ev_hat, n = 1) |>
   ungroup()
 
-saveRDS(optimal_targets, "tennis_project/optimums/targets_new.rds")
+saveRDS(optimal_targets, "tennis_project/optimums/targets_test.rds")

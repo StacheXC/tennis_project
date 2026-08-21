@@ -36,8 +36,8 @@ bias_df <- mu_means_all %>%
     spot = factor(spot, levels = c("Deuce\nWide", "Deuce\nTee", "Ad\nTee", "Ad\nWide")),
     serve_num = ifelse(serve_num == 1, "1st\nServe", "2nd\nServe")
   ) %>% 
-  mutate(diff_x = diff_x * 39.3701,
-         diff_y = diff_y * 39.3701)
+  mutate(diff_x = diff_x,
+         diff_y = diff_y)
 
 # For plot
 manual_shapes <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
@@ -72,8 +72,8 @@ flipped_spots <- c("Deuce\nTee", "Ad\nWide")
 
 # Build full label set per spot
 gridlines_df <- expand.grid(
-  xintercept = seq(-70, 70, by = 10),
-  yintercept = seq(-70, 70, by = 10)
+  xintercept = seq(-1.5, 1.5, by = 0.5),
+  yintercept = seq(-1.5, 1.5, by = 0.5)
 )
 
 spot_levels <- c("Deuce\nWide", "Deuce\nTee", "Ad\nTee", "Ad\nWide")
@@ -99,14 +99,11 @@ male <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
 female <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA",
             "N.OSAKA", "S.KENIN", "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
 
-plot_bias <- function(court_side, player_group) {
-
-  court_label  <- ifelse(court_side == "DeuceCourt", "Deuce", "Ad")
-  court_prefix <- substr(court_label, 1, 1)
+plot_bias <- function() {
 
   ggplot() +
     geom_rect(
-      data = quad_rects %>% filter(substr(spot, 1, 1) == court_prefix),
+      data = quad_rects,
       aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
       alpha = 0.2, color = NA
     ) +
@@ -117,10 +114,9 @@ plot_bias <- function(court_side, player_group) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray55") +
     geom_vline(xintercept = 0, linetype = "dashed", color = "gray55") +
     geom_point(
-      data = bias_df %>% filter(court_side == !!court_side,
-                                server_name %in% player_group),
-      aes(x = diff_x, y = diff_y, shape = factor(server_name)),
-      size = 2, alpha = 0.7
+      data = bias_df,
+      aes(x = diff_x, y = diff_y),
+      size = 1, shape = 4, alpha = 0.7
     ) +
     facet_grid(spot ~ serve_num) +
     scale_shape_manual(values = manual_shapes, name = "Player") +
@@ -130,7 +126,7 @@ plot_bias <- function(court_side, player_group) {
     ) +
     coord_fixed() +
     labs(
-      title = paste0("Strategic Bias (Subconscious) - ", court_label, " Court"),
+      title = paste0("Strategic Bias"),
       x = expression(hat(mu)[x] - hat(mu)[x]^"OPT"),
       y = expression(hat(mu)[y] - hat(mu)[y]^"OPT")
     ) +
@@ -138,12 +134,9 @@ plot_bias <- function(court_side, player_group) {
     theme(
       panel.grid = element_blank(),
       strip.text.y.right = element_text(angle = 0),
-      axis.title.y = element_text(angle = 0, vjust = 0.5)
+      axis.title.y = element_text(angle = 0, vjust = 0.5),
+      plot.title = element_text(hjust = 0.5)
     )
 }
 
-plot_bias("DeuceCourt", male)
-plot_bias("AdCourt", male)
-
-plot_bias("DeuceCourt", female)
-plot_bias("AdCourt", female)
+plot_bias()
