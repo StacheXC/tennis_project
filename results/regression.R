@@ -2,7 +2,6 @@
 library(tidyverse)
 library(mvtnorm)
 library(ggthemes)
-library(glmnet)
 
 source("tennis_project/utils.R")
 
@@ -22,6 +21,7 @@ pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
 
 # Posterior means per server/serve_num/court_side/serve_dir
 exec_err <- readRDS("tennis_project/execution_error/body/execution_error_body.rds")$draws |>
+  filter(serve_dir != "Body") %>% 
   group_by(server_name, serve_num, court_side, serve_dir) |>
   summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta), mean), .groups = "drop")
 
@@ -91,7 +91,7 @@ pbp_df <- pbp_df |>
 # Regression ---------------------------------------------------------------
 
 # Optimal aim points per server/serve_num/court_side/serve_dir
-optimums_all <- readRDS("tennis_project/optimums/gender/targets_gender.rds") |>
+optimums_all <- readRDS("tennis_project/optimums/targets.rds") |>
   select(server_name, serve_num, court_side, serve_dir,
          x_opt = x_serve_bounce, y_opt = y_serve_bounce)
 
@@ -122,6 +122,7 @@ distance_df <- posterior_means |>
   mutate(dist_from_opt = sqrt((mu_x - x_opt)^2 + (mu_y - y_opt)^2)) |>
   select(server_name, serve_num, court_side, serve_dir, dist_from_opt)
 
+# not currently used
 fault_value = pbp_df %>%
   filter(serve_num == 2) %>%
   group_by(server_name) %>%
@@ -130,10 +131,10 @@ fault_value = pbp_df %>%
 # Build binomial regression data
 reg_df <- pbp_df |>
   left_join(fault_value) %>%
-  # filter(point_end_type != "Faulty Serve") %>% 
+  filter(point_end_type != "Faulty Serve") %>%
   mutate(
     point = case_when(
-      point_end_type == "Faulty Serve" ~ fault_value,
+      # point_end_type == "Faulty Serve" ~ fault_value,
       point_winner_id == server_id ~ 1,
       point_winner_id != server_id ~ 0
     )
@@ -153,11 +154,10 @@ reg_df <- pbp_df |>
 fit <- glm(
   cbind(wins, n - wins) ~ server_name + returner_name + region_hat + serve_num + dist_from_opt +
     region_hat:dist_from_opt + serve_num:dist_from_opt,
-  family = quasibinomial,
+  family = binomial,
   data   = reg_df
 )
 
-summary(fit)$coef %>% View()
 
 
 # Test total effect of dist_from_opt < 0 for each region x serve_num combination
@@ -193,28 +193,3 @@ hypotheses <- multcomp::glht(fit, linfct = L, alternative = "less",
 summary(hypotheses)
 
 
-# Lasso -------------------------------------------------------------------
-
-reg_df_complete <- reg_df |> filter(!is.na(dist_from_opt))
-
-X <- model.matrix(
-  ~ server_name + returner_name + region_hat + serve_num + dist_from_opt,
-  data = reg_df_complete
-)
-
-y <- cbind(reg_df_complete$wins, reg_df_complete$n - reg_df_complete$wins)
-
-# Penalize player effects only; leave dist_from_opt terms unpenalized
-penalty <- ifelse(grepl("dist_from_opt", colnames(X)), 0, 1)
-penalty[1] <- 0  # intercept
-
-fit_lasso <- cv.glmnet(
-  X, y,
-  family         = "binomial",
-  alpha          = 1,
-  penalty.factor = penalty
-)
-
-plot(fit_lasso)
-
-coef(fit_lasso, s = "lambda.1se")

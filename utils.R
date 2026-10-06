@@ -118,8 +118,3 @@ find_local_max_single <- function(data, grid_res = 0.1) {
   }
   data[is_max, ]
 }
-
-players <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-             "A.ZVEREV", "J.ISNER", "R.FEDERER", "A.RUBLEV",
-             "A.BARTY", "S.WILLIAMS", "A.SABALENKA", "N.OSAKA", "S.KENIN",
-             "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")

@@ -102,7 +102,7 @@ get_expected_value <- function(value_func, exec_err_post_mean,
 
 get_contours = function(server_name) {
 
-  value_all = readRDS("tennis_project/reward_surface/reward_surface_gender.rds") %>% 
+  value_all = readRDS("tennis_project/reward_surface/reward_surface.rds") %>% 
     filter(server_name == !!server_name)
 
   exec_err_post_draws <- readRDS("tennis_project/execution_error/body/execution_error_body.rds")$draws %>% 
@@ -178,7 +178,7 @@ get_contours = function(server_name) {
   }
  
   combined_df <- bind_rows(results)
-  saveRDS(combined_df, "tennis_project/optimums/contours_gender.rds")
+  saveRDS(combined_df, "tennis_project/optimums/contours.rds")
 
 }
 

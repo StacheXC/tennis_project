@@ -142,8 +142,8 @@ pbp_df_womens = pbp_df %>%
 
 value_all_mens = fit_reward_surface(pbp_df_mens)
 
-saveRDS(value_all_mens, "tennis_project/reward_surface/reward_surface_mens.rds")
-
 value_all_womens = fit_reward_surface(pbp_df_womens)
 
-saveRDS(value_all_womens, "tennis_project/reward_surface/reward_surface_womens.rds")
+value_all = bind_rows(value_all_mens, value_all_womens)
+
+saveRDS(value_all, "tennis_project/reward_surface/reward_surface.rds")

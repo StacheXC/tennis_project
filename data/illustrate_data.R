@@ -1,25 +1,15 @@
 
 library(tidyverse)
-library(mvtnorm)
-library(ellipse)
-library(ggpattern)
-library(ggthemes)
 
 source("tennis_project/utils.R")
 
 illustrate_data = function(server_name) {
   
-  returner_locs <- data.frame(
-    court = c("DeuceCourt", "DeuceCourt", "AdCourt", "AdCourt"),
-    serve = c(1, 2, 1, 2),
-    ret_x = c(13.59, 12.91, 13.72, 12.80),
-    ret_y = c(3.64, 3.48, -3.47, -3.29)
-  )
-  
   pbp_df = readRDS("tennis_project/data/pbp_df.rds") %>%
     filter(
       server_name == !!server_name,
       str_detect(match_id, "australian"),
+      !is.na(point_winner_id),
       x_serve_bounce > 3 | error_type == "Net Error",
       x_serve_bounce < 3 | error_type != "Net Error" | is.na(error_type),
       x_serve_bounce < 9,
@@ -44,21 +34,10 @@ illustrate_data = function(server_name) {
       court_side = factor(
         court_side, levels = c("Deuce\nCourt", "Ad\nCourt")
       ),
-      point = point_winner_id == server_id
-    ) %>% 
-    mutate(
-      point = point & 
-        x_serve_bounce > 3 &
-        x_serve_bounce < 6.4 &
-        abs(y_serve_bounce) < 4.11 &
-        (y_serve_bounce > 0 | court_side == "Ad\nCourt") &
-        (y_serve_bounce < 0 | court_side == "Deuce\nCourt") &
-        serve_speed_kph != 0 &
-        rally_length != 0 &
-        !is_fault
-    ) %>% 
-    mutate(
-      Point = factor(point, levels = c(TRUE, FALSE))
+      Point = point_winner_id == server_id,
+      Point = factor(
+        Point, levels = c(TRUE, FALSE)
+      )
     )
   
   ggplot() + 
@@ -71,7 +50,6 @@ illustrate_data = function(server_name) {
     labs(x = "", y = "", title = server_name) +
     coord_equal() +
     scale_color_manual(values = c("red", "blue")) +
-    scale_shape_manual(values = c(1, 4)) +
     theme_minimal() +
     theme(panel.grid = element_blank(),
           axis.text = element_blank(),
@@ -84,5 +62,3 @@ illustrate_data = function(server_name) {
 server_name = "N.DJOKOVIC"
 
 illustrate_data(server_name)
-
-

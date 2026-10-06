@@ -21,7 +21,7 @@ pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
     court_side = ifelse(court_side == "DeuceCourt", 1, 2)
   )
 
-fit_execution_error_body2 <- function(pbp_df) {
+fit_execution_error_body <- function(pbp_df) {
 
   player_levels <- sort(unique(pbp_df$server_name))
   N_player      <- length(player_levels)
@@ -74,7 +74,7 @@ fit_execution_error_body2 <- function(pbp_df) {
     c_ind_court  = c_ind_court
   )
 
-  model <- stan_model("tennis_project/execution_error/body/execution_error_body2.stan")
+  model <- stan_model("tennis_project/execution_error/body/execution_error_body.stan")
 
   fit <- sampling(
     model,
@@ -183,6 +183,6 @@ fit_execution_error_body2 <- function(pbp_df) {
 
 }
 
-draws_pooled <- fit_execution_error_body2(pbp_df)
+draws_pooled <- fit_execution_error_body(pbp_df)
 
-saveRDS(draws_pooled, "tennis_project/execution_error/body/execution_error_body2_test_2.rds")
+saveRDS(draws_pooled, "tennis_project/execution_error/body/execution_error_body.rds")

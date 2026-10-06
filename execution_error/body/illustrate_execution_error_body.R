@@ -152,5 +152,6 @@ illustrate_execution_error_body <- function(server_name) {
 
 }
 
-server_name <- "N.DJOKOVIC"
+server_name = "N.DJOKOVIC"
+
 illustrate_execution_error_body(server_name)

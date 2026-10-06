@@ -6,7 +6,8 @@ library(ggthemes)
 source("tennis_project/utils.R")
 
 # Load execution error model once and summarise posterior means for all players
-mu_means_all <- readRDS("tennis_project/execution_error/execution_error.rds") |>
+mu_means_all <- readRDS("tennis_project/execution_error/body/execution_error_body.rds")$draws |>
+  filter(serve_dir != "Body") %>% 
   group_by(server_name, serve_num, court_side, serve_dir) |>
   summarise(mu_x = mean(mu_x), mu_y = mean(mu_y), .groups = "drop")
 
@@ -93,12 +94,6 @@ quad_rects <- map_dfr(
     spot = factor(spot, levels = spot_levels)
   )
 
-male <- c("N.DJOKOVIC", "R.NADAL", "C.ALCARAZ", "J.SINNER", "D.MEDVEDEV",
-          "A.ZVEREV", "J.ISNER", "R.FEDERER")
-
-female <- c("A.BARTY", "S.WILLIAMS", "A.SABALENKA",
-            "N.OSAKA", "S.KENIN", "I.SWIATEK", "C.GAUFF", "E.SVITOLINA")
-
 plot_bias <- function() {
 
   ggplot() +
@@ -135,7 +130,8 @@ plot_bias <- function() {
       panel.grid = element_blank(),
       strip.text.y.right = element_text(angle = 0),
       axis.title.y = element_text(angle = 0, vjust = 0.5),
-      plot.title = element_text(hjust = 0.5)
+      plot.title = element_text(hjust = 0.5),
+      axis.text         = element_blank()
     )
 }
 
