@@ -1,7 +1,3 @@
-------------------------------------------------------------------------
-
-editor_options: markdown: wrap: 72 ---
-
 Steps to reproduce analysis (Several intermediate files were too large to push to github):
 
 1\. Run data/compile_data.R to put together the entire dataset (verify with companion illustration script)
