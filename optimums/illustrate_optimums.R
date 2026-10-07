@@ -5,10 +5,10 @@ source("tennis_project/utils.R")
 
 illustrate_optimums <- function(server_name) {
 
-  ev_df <- readRDS("tennis_project/optimums/optimums.rds") |>
+  ev_df <- readRDS("tennis_project/optimums/optimums_test.rds") |>
     filter(server_name == !!server_name)
 
-  optimal_local_maxima <- readRDS("tennis_project/optimums/targets.rds") %>% 
+  optimal_local_maxima <- readRDS("tennis_project/optimums/targets_test.rds") %>% 
     filter(server_name == !!server_name)
 
   ev_plot <- ev_df %>%
