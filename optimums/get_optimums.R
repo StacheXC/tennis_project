@@ -3,7 +3,7 @@
 library(tidyverse)
 library(mvtnorm)
 
-source("../utils.R")
+source("tennis_project/utils.R")
 
 get_expected_value <- function(value_func, exec_err_post_mean,
                                fault_value = -1) {
@@ -156,9 +156,9 @@ get_optimums = function(server_name, exec_err_fit, value_all) {
 
 }
 
-exec_err_fit <- readRDS("../execution_error/execution_error.rds")$draws
+exec_err_fit <- readRDS("tennis_project/execution_error/body/execution_error_body.rds")$draws
 
-value_all = readRDS("../reward_surface/reward_surface.rds")
+value_all = readRDS("tennis_project/reward_surface/reward_surface.rds")
 
 players <- exec_err_fit %>%
    pull(server_name) %>%
@@ -169,7 +169,7 @@ optimums_all <- map_dfr(players, function(player) {
   get_optimums(player, exec_err_fit, value_all)
 })
 
-saveRDS(optimums_all, "../optimums/optimums.rds")
+saveRDS(optimums_all, "tennis_project/optimums/optimums.rds")
 
 optimal_targets <- optimums_all |>
   filter(
@@ -187,4 +187,4 @@ optimal_targets <- optimums_all |>
   slice_max(ev_hat, n = 1) |>
   ungroup()
 
-saveRDS(optimal_targets, "../optimums/targets.rds")
+saveRDS(optimal_targets, "tennis_project/optimums/targets.rds")

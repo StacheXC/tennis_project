@@ -2,7 +2,7 @@
 library(tidyverse)
 library(rstan)
 
-pbp_df <- readRDS("../data/pbp_df.rds") %>%
+pbp_df <- readRDS("tennis_project/data/pbp_df.rds") %>%
   filter(
     !is.na(server_name),
     str_detect(match_id, "australian"),
@@ -74,7 +74,7 @@ fit_execution_error_body2 <- function(pbp_df) {
     c_ind_court  = c_ind_court
   )
 
-  model <- stan_model("../execution_error/execution_error.stan")
+  model <- stan_model("tennis_project/execution_error/execution_error.stan")
 
   fit <- sampling(
     model,
@@ -185,4 +185,4 @@ fit_execution_error_body2 <- function(pbp_df) {
 
 draws_pooled <- fit_execution_error_body2(pbp_df)
 
-saveRDS(draws_pooled, "../execution_error/execution_error.rds")
+saveRDS(draws_pooled, "tennis_project/execution_error/execution_error_body.rds")

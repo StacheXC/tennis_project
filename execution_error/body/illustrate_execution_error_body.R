@@ -28,7 +28,7 @@ illustrate_execution_error_body <- function(server_name) {
       x_serve_bounce = ifelse(x_serve_bounce < 3, runif(n(), -.2, 0), x_serve_bounce)
     )
 
-  exec_err_post_mean <- readRDS("tennis_project/execution_error/body/execution_error_body_test.rds")$draws %>%
+  exec_err_post_mean <- readRDS("tennis_project/execution_error/body/execution_error_body.rds")$draws %>%
     filter(server_name == !!server_name) %>%
     group_by(serve_num, court_side, serve_dir) %>%
     summarise(across(c(mu_x, mu_y, tau_x, tau_y, rho, theta, t), mean), .groups = "drop")
