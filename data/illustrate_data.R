@@ -55,7 +55,7 @@ illustrate_data = function(server_name) {
           axis.text = element_blank(),
           strip.text.y.left = element_text(angle = 0),
           plot.title = element_text(hjust = 0.5),
-          legend.position = "bottom")
+          legend.position = "right")
 
 }
 

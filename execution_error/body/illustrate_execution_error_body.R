@@ -142,7 +142,7 @@ illustrate_execution_error_body <- function(server_name) {
     theme(
       panel.grid          = element_blank(),
       axis.text           = element_blank(),
-      legend.position     = "bottom",
+      legend.position     = "right",
       strip.text.y.left   = element_text(angle = 0),
       legend.title        = element_text(size = 6, face = "bold"),
       legend.text         = element_text(size = 6),

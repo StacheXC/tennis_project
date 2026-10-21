@@ -34,16 +34,15 @@ illustrate_reward_surface = function(server_name) {
     theme_minimal() +
     theme(panel.grid = element_blank(),
           axis.text = element_blank(),
-          legend.position = "bottom",
-          legend.justification = c(0.5, 0.5),
-          legend.direction = "horizontal",
           strip.text.y.left = element_text(angle = 0),
+          plot.title = element_text(hjust = 0.5),
+          legend.position = "right",
+          legend.justification = c(0.5, 0.5),
+          legend.direction = "vertical",
           legend.title = element_text(size = 6, face = "bold",
                                       hjust = 0.5),
           legend.text = element_text(size = 6),
-          strip.text = ggtext::element_markdown(size = 8, lineheight = 1.1),
-          legend.background = element_rect(fill = "gray95", color = NA),
-          plot.title = element_text(hjust = 0.5, size = 12))
+          legend.background = element_rect(fill = "gray95", color = NA))
   
 }
 
